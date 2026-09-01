@@ -1,0 +1,43 @@
+name: Update Star History
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/update-star-history.yml
+      - scripts/render-star-history.mjs
+      - README.md
+      - README.zh-CN.md
+  schedule:
+    - cron: '23 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: star-history
+  cancel-in-progress: true
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+
+      - name: Render charts from GitHub stargazer timestamps
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/render-star-history.mjs /tmp/labelone-star-history
+
+      - name: Publish isolated chart branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git switch --orphan star-history-publish
+          cp /tmp/labelone-star-history/star-history.svg .
+          cp /tmp/labelone-star-history/star-history-dark.svg .
+          git add star-history.svg star-history-dark.svg
+          git commit -m 'Update star history'
+          git push --force origin HEAD:star-history
