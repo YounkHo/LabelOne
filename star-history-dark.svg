@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="360" viewBox="0 0 960 360" role="img" aria-labelledby="title description">
+  <title id="title">YounkHo/LabelOne star history</title>
+  <desc id="description">6 stars as of 2026-09-05</desc>
+  <defs>
+    <linearGradient id="star-fill-dark" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#53e1bf4a"/><stop offset="1" stop-color="#53e1bf08"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="360" rx="18" fill="#0b1118"/>
+  <rect x="18" y="18" width="924" height="324" rx="14" fill="#101922" stroke="#263443"/>
+  <text x="54" y="57" fill="#e7eef5" font-family="ui-sans-serif,system-ui,-apple-system,sans-serif" font-size="22" font-weight="700">YounkHo/LabelOne Star History</text>
+  <text x="906" y="57" fill="#53e1bf" text-anchor="end" font-family="ui-sans-serif,system-ui,-apple-system,sans-serif" font-size="20" font-weight="700">6 stars</text>
+  <g fill="#8292a2" stroke="#263443" stroke-width="1" font-family="ui-sans-serif,system-ui,-apple-system,sans-serif" font-size="11"><g><line x1="72" x2="924" y1="260" y2="260"/><text x="58" y="264" text-anchor="end">0</text></g><g><line x1="72" x2="924" y1="217.5" y2="217.5"/><text x="58" y="221.5" text-anchor="end">2</text></g><g><line x1="72" x2="924" y1="175" y2="175"/><text x="58" y="179" text-anchor="end">4</text></g><g><line x1="72" x2="924" y1="132.5" y2="132.5"/><text x="58" y="136.5" text-anchor="end">6</text></g><g><line x1="72" x2="924" y1="90" y2="90"/><text x="58" y="94" text-anchor="end">8</text></g><g><line x1="72" x2="72" y1="90" y2="260"/><text x="72" y="285" text-anchor="middle">Sep 1, 26</text></g><g><line x1="285" x2="285" y1="90" y2="260"/><text x="285" y="285" text-anchor="middle">Sep 2, 26</text></g><g><line x1="498" x2="498" y1="90" y2="260"/><text x="498" y="285" text-anchor="middle">Sep 4, 26</text></g><g><line x1="711" x2="711" y1="90" y2="260"/><text x="711" y="285" text-anchor="middle">Sep 6, 26</text></g><g><line x1="924" x2="924" y1="90" y2="260"/><text x="924" y="285" text-anchor="middle">Sep 8, 26</text></g></g>
+  <path d="M 72.00 260.00 H 91.16 V 238.75 H 105.29 V 217.50 H 105.49 V 196.25 H 105.90 V 175.00 H 111.74 V 153.75 H 203.04 V 132.50 H 924.00 L 924.00 260 L 72.00 260 Z" fill="url(#star-fill-dark)"/>
+  <path d="M 72.00 260.00 H 91.16 V 238.75 H 105.29 V 217.50 H 105.49 V 196.25 H 105.90 V 175.00 H 111.74 V 153.75 H 203.04 V 132.50 H 924.00" fill="none" stroke="#53e1bf" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+  <circle cx="924.00" cy="132.50" r="5" fill="#8df1d8" stroke="#0b1118" stroke-width="2"/>
+  <text x="54" y="326" fill="#8292a2" font-family="ui-sans-serif,system-ui,-apple-system,sans-serif" font-size="11">Updated 2026-09-05 · Source: GitHub API</text>
+</svg>
