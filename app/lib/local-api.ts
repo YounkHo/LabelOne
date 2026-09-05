@@ -12,6 +12,16 @@ export class LocalApiError extends Error {
   }
 }
 
+export function localApiErrorPayload(payload: unknown, status: number): ApiError {
+  const body = payload && typeof payload === 'object' ? payload as Record<string, unknown> : {};
+  const detail = body.detail && typeof body.detail === 'object' ? body.detail as Record<string, unknown> : body;
+  return {
+    code: typeof detail.code === 'string' ? detail.code : `http_${status}`,
+    message: typeof detail.message === 'string' ? detail.message : `Local API request failed (${status})`,
+    details: detail.details && typeof detail.details === 'object' ? detail.details as Record<string, unknown> : undefined,
+  };
+}
+
 export function localApiBase(): string | null {
   if (typeof window === 'undefined') return null;
   if (!['localhost', '127.0.0.1'].includes(window.location.hostname)) return null;
@@ -50,11 +60,7 @@ export async function localRequest<T>(
     });
     const payload = await response.json().catch(() => null);
     if (!response.ok) {
-      throw new LocalApiError({
-        code: payload?.code ?? `http_${response.status}`,
-        message: payload?.message ?? `Local API request failed (${response.status})`,
-        details: payload?.details,
-      });
+      throw new LocalApiError(localApiErrorPayload(payload, response.status));
     }
     return payload as T;
   } catch (error) {

@@ -16,9 +16,10 @@ test('every right sidebar tab stays fixed and rejects vertical panel scrolling',
 });
 
 test('fixed panels retain only their purpose-built internal content scrollers', () => {
-  assert.match(css, /\.pipeline-panel>\.flow-canvas\{min-height:120px;flex:1;overflow:auto\}/);
+  assert.match(css, /\.pipeline-panel>\.flow-canvas\{position:relative;min-height:120px;flex:1;display:flex;flex-direction:column;overflow:hidden/);
+  assert.match(css, /\.flow-sequence\{min-height:0;flex:1;overflow:auto/);
   assert.match(css, /\.layers-panel \.annotation-object-list\{min-height:0;max-height:none;flex:1\}/);
-  assert.match(css, /\.agent-messages \{ min-height:0; overflow:auto;/);
+  assert.match(css, /\.agent-run-feed\{min-height:0;[^}]*overflow:auto/);
   assert.match(css, /\.right-sidebar\.inference-tab \.right-panel-scroll\{height:100%;overflow:hidden\}/);
   assert.match(css, /\.inference-panel\{height:100%;min-height:0;display:flex;flex-direction:column;overflow:hidden/);
   assert.match(css, /\.inference-results-region\{[^}]*overflow-x:hidden;overflow-y:auto/);

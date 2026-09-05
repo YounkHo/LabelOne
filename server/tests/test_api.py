@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import sqlite3
 from io import BytesIO
 from pathlib import Path
 import asyncio
@@ -18,6 +19,7 @@ from PIL import Image
 from labelone.config import Settings
 from labelone.application_settings import apply_network_proxy_environment
 from labelone.jobs.repository import JobRepository
+from labelone.jobs.models import BatchJobRequest
 from labelone.main import create_app
 from labelone.models.weights import DownloadedWeight, ModelWeightStore
 
@@ -294,6 +296,83 @@ def test_dataset_unregister_removes_only_index_and_preserves_source_files(tmp_pa
     assert image_path.is_file() and annotation_path.is_file()
 
 
+def test_opening_registered_dataset_reports_a_missing_source_directory(tmp_path: Path) -> None:
+    root = tmp_path / "dataset"
+    root.mkdir()
+    Image.new("RGB", (16, 10), "white").save(root / "image.png")
+    (root / "image.json").write_text(json.dumps({"shapes": []}), encoding="utf-8")
+    app = create_app(Settings(data_dir=tmp_path / "data"))
+
+    with TestClient(app) as client:
+        registered = client.post("/api/v1/datasets/register", json={
+            "dataset_id": "missing-source",
+            "root_dir": str(root),
+            "layout": "same_directory",
+        })
+        root.rename(tmp_path / "dataset-moved")
+        listed = client.get("/api/v1/datasets")
+        opened = client.get("/api/v1/datasets/missing-source/assets-cursor")
+        removed = client.delete("/api/v1/datasets/missing-source")
+        remaining = client.get("/api/v1/datasets")
+
+    assert registered.status_code == 200
+    assert listed.json()["datasets"][0]["source_available"] is False
+    assert listed.json()["datasets"][0]["source_error"] == "root_missing"
+    assert opened.status_code == 400
+    assert opened.json()["code"] == "invalid_path"
+    assert opened.json()["details"]["reason"] == "root_missing"
+    assert "请重新选择当前项目文件夹" in opened.json()["message"]
+    assert removed.status_code == 204
+    assert remaining.json()["datasets"] == []
+    assert (tmp_path / "dataset-moved" / "image.png").is_file()
+
+
+def test_force_unregister_cancels_paused_dataset_jobs_before_removing_index(tmp_path: Path) -> None:
+    root = tmp_path / "dataset"
+    root.mkdir()
+    Image.new("RGB", (16, 10), "white").save(root / "image.png")
+    (root / "image.json").write_text(json.dumps({"shapes": []}), encoding="utf-8")
+    data_dir = tmp_path / "data"
+    app = create_app(Settings(data_dir=data_dir))
+
+    with TestClient(app) as client:
+        registered = client.post("/api/v1/datasets/register", json={
+            "dataset_id": "blocked-removal",
+            "root_dir": str(root),
+            "layout": "same_directory",
+        })
+        request = BatchJobRequest.model_validate({
+            "kind": "pipeline",
+            "dataset_id": "blocked-removal",
+            "pipeline_nodes": [{"id": "source", "kind": "source", "parameters": {}}],
+        })
+        with sqlite3.connect(data_dir / "index.sqlite3") as connection:
+            connection.execute(
+                """
+                INSERT INTO jobs(job_id, kind, dataset_id, state, request_json, request_hash,
+                                 idempotency_key, total, created_at, updated_at, error, desired_state, generation)
+                VALUES('paused-job', 'pipeline', 'blocked-removal', 'paused', ?, 'fixture', NULL, 0,
+                       '2026-01-01T00:00:00+00:00', '2026-01-01T00:00:00+00:00', NULL, 'pause', 0)
+                """,
+                (request.model_dump_json(),),
+            )
+        root.rename(tmp_path / "dataset-moved")
+
+        blocked = client.delete("/api/v1/datasets/blocked-removal")
+        removed = client.delete("/api/v1/datasets/blocked-removal?cancel_active_jobs=true")
+        jobs = client.get("/api/v1/jobs?limit=20").json()["jobs"]
+        remaining = client.get("/api/v1/datasets").json()["datasets"]
+
+    assert registered.status_code == 200
+    assert blocked.status_code == 409
+    assert blocked.json()["detail"]["code"] == "dataset_has_active_jobs"
+    assert blocked.json()["detail"]["details"]["job_ids"] == ["paused-job"]
+    assert removed.status_code == 204
+    assert next(job for job in jobs if job["job_id"] == "paused-job")["state"] == "canceled"
+    assert remaining == []
+    assert (tmp_path / "dataset-moved" / "image.png").is_file()
+
+
 def test_persistent_scan_session_registers_without_large_scan_response_and_supports_cursors(
     tmp_path: Path,
 ) -> None:
@@ -357,11 +436,11 @@ def test_catalog_import_api(tmp_path: Path) -> None:
         listed = client.get("/api/v1/models")
 
     assert imported.status_code == 200
-    assert [model["id"] for model in listed.json()["models"]] == ["remote"]
+    assert [model["id"] for model in listed.json()["models"]] == ["remote", "hypir-sd2"]
     restarted = create_app(Settings(data_dir=tmp_path / "data"))
     with TestClient(restarted) as client:
         restored = client.get("/api/v1/models")
-    assert [model["id"] for model in restored.json()["models"]] == ["remote"]
+    assert [model["id"] for model in restored.json()["models"]] == ["remote", "hypir-sd2"]
 
 
 def test_model_weight_listing_never_downloads_implicitly(tmp_path: Path) -> None:
@@ -419,14 +498,16 @@ def test_model_weight_download_requires_idempotency_and_creates_persistent_job(
     app = create_app(Settings(data_dir=tmp_path / "data"))
     with TestClient(app) as client:
         client.post("/api/v1/model-sources/x-anylabeling/import", json={"root_dir": str(tmp_path / "x")})
-        missing_key = client.post("/api/v1/models/depth/weights/0/download")
+        missing_key = client.post("/api/v1/models/depth/weights/download", json={"url_indices": [0]})
         created = client.post(
-            "/api/v1/models/depth/weights/0/download",
+            "/api/v1/models/depth/weights/download",
             headers={"Idempotency-Key": "depth-weight"},
+            json={"url_indices": [0]},
         )
         duplicate = client.post(
-            "/api/v1/models/depth/weights/0/download",
+            "/api/v1/models/depth/weights/download",
             headers={"Idempotency-Key": "depth-weight"},
+            json={"url_indices": [0]},
         )
         deadline = monotonic() + 5
         job = created.json()

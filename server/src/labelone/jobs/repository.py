@@ -413,6 +413,20 @@ class JobRepository:
                     if existing["request_hash"] not in compatible_request_hashes:
                         raise RevisionConflictError("Idempotency key was reused with a different job request")
                     return self.get(str(existing["job_id"]), include_items=False)
+            if request.kind == "model_download":
+                active_download = self._connection.execute(
+                    """
+                    SELECT job_id FROM jobs
+                    WHERE kind = 'model_download'
+                      AND state IN ('queued', 'running', 'pausing')
+                      AND request_hash = ?
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                    """,
+                    (request_hash,),
+                ).fetchone()
+                if active_download is not None:
+                    return self.get(str(active_download["job_id"]), include_items=False)
             job_id = uuid4().hex
             now = _now()
             self._connection.execute(
@@ -549,6 +563,19 @@ class JobRepository:
                 (dataset_id,),
             ).fetchone()
         return row is not None
+
+    def active_dataset_job_ids(self, dataset_id: str) -> list[str]:
+        with self._lock:
+            rows = self._connection.execute(
+                """
+                SELECT job_id FROM jobs
+                WHERE dataset_id=?
+                  AND state NOT IN ('succeeded','succeeded_with_errors','failed','canceled')
+                ORDER BY created_at
+                """,
+                (dataset_id,),
+            ).fetchall()
+        return [str(row["job_id"]) for row in rows]
 
     def list_events(self, job_id: str, *, after: int = 0, limit: int = 200) -> list[JobEvent]:
         if isinstance(after, bool) or not isinstance(after, int) or after < 0:

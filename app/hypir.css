@@ -1,0 +1,57 @@
+.model-license-notice {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 4px 7px;
+  margin: 0 12px 8px;
+  padding: 7px 8px;
+  border: 1px solid #6b5536;
+  border-radius: 7px;
+  background: #211a11;
+  color: #b99a70;
+  font-size: 7px;
+  line-height: 1.4;
+}
+
+.model-license-notice strong,
+.model-license-notice span {
+  grid-column: 1;
+  min-width: 0;
+}
+
+.model-license-notice strong {
+  color: #d2b27e;
+  font-size: 8px;
+}
+
+.model-license-notice em {
+  display: block;
+  margin-top: 2px;
+  color: #8f7b60;
+  font-style: normal;
+  overflow-wrap: anywhere;
+}
+
+.model-license-notice a {
+  grid-row: 1 / 3;
+  padding: 4px 5px;
+  border: 1px solid #665238;
+  border-radius: 5px;
+  color: #c8aa7c;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.model-license-notice a:hover,
+.model-license-notice a:focus-visible {
+  border-color: #9a7a4d;
+  color: #ebc98f;
+}
+
+.raster-overlay-controls.standalone-result {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.raster-overlay-controls.standalone-result > div strong {
+  max-width: 220px;
+}

@@ -9,7 +9,7 @@ test('inference result types expose independent controls only when data exists',
   const panel = page.match(/rightTab === 'inference' && <section className="inference-panel">[\s\S]*?rightTab === 'agent'/)?.[0] ?? '';
   assert.doesNotMatch(panel, /Detection|显示检测和轮廓|currentDetectionPredictions\.length/);
   assert.match(page, /const showInferenceResult = [^;]*currentAnnotationsAreSegmentation \|\| currentClassifications\.length > 0 \|\| currentArtifacts\.length > 0 \|\| currentRasters\.length > 0/);
-  assert.match(page, /\(currentSegmentationContours\.length > 0 \|\| currentRasters\.length > 0\) && <div className={`prediction-display-control \$\{showMasks/);
+  assert.match(page, /\(currentSegmentationContours\.length > 0 \|\| sourceCompatibleRasters\.length > 0\) && <div className={`prediction-display-control \$\{showMasks/);
   assert.match(page, /currentClassifications\.length > 0 && <div className={`prediction-display-control \$\{showClassifications/);
   assert.match(page, /aria-label="显示分割和像素结果" aria-checked=\{showMasks && !pixelResultDisplayBlockedReason\}/);
   assert.match(page, /aria-label="显示分类 Top-K" aria-checked=\{showClassifications\}/);
@@ -17,12 +17,16 @@ test('inference result types expose independent controls only when data exists',
 });
 
 test('detection, mask, and classification each use their native canvas presentation', () => {
-  assert.match(page, /const visibleCurrentPredictionEntries = currentDetectionPredictions\.flatMap/);
+  assert.match(page, /const availablePredictionEntries = currentDetectionPredictions\.flatMap/);
+  assert.match(page, /const visibleCurrentPredictionEntries = availablePredictionEntries\.filter/);
   assert.match(page, /!showingPipelineImage && visiblePredictionCanvasEntries\.length > 0 && <g className=\{currentAnnotationsAreSegmentation \? 'inference-segmentation-contours' : 'inference-detections'\}/);
   assert.match(page, /!showingPipelineImage && canvasLabelOpacity\(view\.scale\) > 0 \? visiblePredictionCanvasEntries\.map/);
   assert.match(page, /const activeRaster = showMasks \? displayableRasters\.find/);
   assert.match(page, /currentRasters\.filter\(\(raster\) => inferenceRasterMatchesSource\(raster, currentFile\?\.width, currentFile\?\.height\)\)/);
-  assert.match(page, /disabled=\{!compatible\} title=\{compatible \? `在画布显示 \$\{raster\.role\}` : mismatchReason\}/);
+  assert.match(page, /const displayMode = inferenceRasterDisplayMode\(raster, currentFile\?\.width, currentFile\?\.height\)/);
+  assert.match(page, /standalone \? active \? '返回原图' : '画布查看'/);
+  assert.match(page, /activeStandaloneScale, b: 0, c: 0, d: activeStandaloneScale/);
+  assert.match(page, /setSelectedStandaloneRasterId\(active \? null : raster\.id\)/);
   assert.match(page, /style=\{\{ opacity: rasterOpacity \/ 100 \}\}/);
   assert.match(page, /showClassifications && currentClassifications\.length > 0 && <section className="canvas-classification-overlay"/);
   assert.match(page, /currentClassifications\.slice\(0, 5\)\.map/);

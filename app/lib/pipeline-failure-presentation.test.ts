@@ -23,3 +23,12 @@ test('pipeline failure state clears on retry and successful preview', () => {
   assert.match(backend, /phase: 'error',[\s\S]*error: apiError\(error\)/);
   assert.match(page, /pipelineEnabled && backend\.pipeline\.phase === 'error'/);
 });
+
+test('restored model pipelines retry on runtime readiness and never replace the source with empty panes', () => {
+  assert.match(page, /const currentPipelineModelRuntimeKey = useMemo\(\(\) => pipelineModelFeatureRuntimeKey\(/);
+  assert.match(page, /currentPipelineExecutionSignature, currentPipelineModelRuntimeKey, currentPipelineValidationKey/);
+  assert.match(page, /const pipelineHasDisplayablePane = hasDisplayablePipelinePane\(pipelineDisplayItems\)/);
+  assert.match(page, /showingMultiplePipelineViews = showPipelineViewControls && pipelineHasDisplayablePane/);
+  assert.match(page, /const showingPipelinePaneViews = showingMultiplePipelineViews/);
+  assert.match(page, /const canvasPipelineItem = effectiveVisualizationDisplayMode === 'source'/);
+});

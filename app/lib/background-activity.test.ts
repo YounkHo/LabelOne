@@ -29,9 +29,9 @@ test('background activity lives in the top-right actions as a browser-style prog
   assert.match(page, /className="background-activity" role="dialog" aria-label="后台任务"/);
   assert.match(page, /className="activity-stream" role="region" aria-label="后台活动流"/);
   assert.match(page, /className="activity-row-main" aria-pressed=\{selected\}/);
-  assert.match(page, /controlTask\(job\.job_id, 'pause'\)/);
-  assert.match(page, /controlTask\(job\.job_id, 'resume'\)/);
-  assert.match(page, /controlTask\(job\.job_id, 'cancel'\)/);
+  assert.match(page, /controlTaskGroup\(logicalJobIds, 'pause'\)/);
+  assert.match(page, /controlTaskGroup\(logicalJobIds, 'resume'\)/);
+  assert.match(page, /controlTaskGroup\(logicalJobIds, 'cancel'\)/);
   assert.match(page, /backend\.jobItems\.phase === 'ready'/);
   assert.doesNotMatch(page, /right-sidebar[^\n]+has-activity|activity-open|activity-collapsed/);
   assert.doesNotMatch(css, /\.right-sidebar\.has-activity|\.activity-dock-toggle/);
@@ -50,8 +50,7 @@ test('hover and focus preview tasks while click pins the popover without stealin
   assert.match(page, /onMouseLeave=\{\(\) => setTaskStreamHovered\(false\)\}/);
   assert.match(page, /onFocusCapture=\{\(\) => setTaskStreamFocused\(true\)\}/);
   assert.match(page, /void backend\.refreshJobs\(\)\.catch\(\(\) => undefined\)/);
-  assert.match(page, /可在右上角后台任务查看进度/);
-  assert.match(page, /逐图进度、失败与重试会显示在右上角后台任务/);
+  assert.match(page, /可在右上角查看进度/);
   assert.match(agentService, /后续进度可在右上角后台任务中查看/);
 });
 
@@ -60,8 +59,8 @@ test('recent task windows, local clearing and actionable attention states stay r
   assert.match(page, /const taskIconComplete = taskStreamJobs\.length > 0 && activeTaskCount === 0 && attentionTaskCount === 0/);
   assert.match(page, /filterBackgroundTaskHistory\(backendJobs, dismissedTaskVersions, taskHistoryHours\)/);
   assert.match(page, /BACKGROUND_TASK_HISTORY_HOURS\.map/);
-  assert.match(page, /清除已完成/);
-  assert.match(page, /恢复已隐藏/);
+  assert.match(page, />清除\{clearableTaskIds\.length/);
+  assert.match(page, />恢复<\/button>/);
   assert.match(page, /重试失败项/);
   assert.match(page, /忽略提醒/);
   assert.match(page, /服务端任务记录仍保留/);
@@ -70,6 +69,9 @@ test('recent task windows, local clearing and actionable attention states stay r
   assert.match(css, /\.background-task-progress\{position:absolute/);
   assert.match(css, /\.activity-history-toolbar\{/);
   assert.match(css, /\.activity-attention-actions\{/);
+  assert.doesNotMatch(page, /activity-summary-progress/);
+  assert.match(page, /const taskPopoverSummary =/);
+  assert.match(css, /Background tasks: one compact hierarchy/);
 });
 
 test('the activity popover closes on outside click or Escape', () => {

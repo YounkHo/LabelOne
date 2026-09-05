@@ -143,6 +143,22 @@ LABELONE_DATA_DIR=/path/to/labelone-data \
 ./scripts/dev-local.sh
 ```
 
+### HYPIR-SD2 (optional)
+
+The model library includes a HYPIR-SD2 entry, but LabelOne never downloads or executes its third-party runtime implicitly. HYPIR is restricted to non-commercial use unless you obtain written permission from SupPixel. It also requires NVIDIA CUDA, the official HYPIR checkout, a separate Python 3.10 / Torch 2.6 environment, a local Stable Diffusion 2.1 Base snapshot, and `HYPIR_sd2.pth`.
+
+After preparing those files, start LabelOne with:
+
+```bash
+LABELONE_HYPIR_PYTHON=/path/to/hypir-env/bin/python \
+LABELONE_HYPIR_ROOT=/path/to/HYPIR \
+LABELONE_HYPIR_SD21_BASE=/path/to/stable-diffusion-2-1-base \
+LABELONE_HYPIR_SD2_WEIGHT=/path/to/HYPIR_sd2.pth \
+./scripts/dev-local.sh
+```
+
+Follow the [official HYPIR repository](https://github.com/XPixelGroup/HYPIR) for environment and weight preparation. Without a complete runtime or CUDA, the catalog entry remains visible but explicitly unavailable. Restored 1–8× images open as an independent canvas source instead of being treated as same-size mask overlays.
+
 By default the API listens only on `127.0.0.1`, and images are not uploaded automatically. Remote inference or a cloud AI service makes network requests only after it is configured and selected.
 
 ## Project Layout

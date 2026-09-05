@@ -143,6 +143,22 @@ LABELONE_DATA_DIR=/path/to/labelone-data \
 ./scripts/dev-local.sh
 ```
 
+### HYPIR-SD2（可选）
+
+模型库内置 HYPIR-SD2 目录项，但不会自动下载或执行第三方代码。该模型仅限非商业用途，商业场景必须先取得 SupPixel 的书面许可；运行时还需要 NVIDIA CUDA、官方 HYPIR 仓库、独立 Python 3.10 / Torch 2.6 环境、本地 Stable Diffusion 2.1 Base 和 `HYPIR_sd2.pth`。
+
+准备完成后，在启动 LabelOne 前设置：
+
+```bash
+LABELONE_HYPIR_PYTHON=/path/to/hypir-env/bin/python \
+LABELONE_HYPIR_ROOT=/path/to/HYPIR \
+LABELONE_HYPIR_SD21_BASE=/path/to/stable-diffusion-2-1-base \
+LABELONE_HYPIR_SD2_WEIGHT=/path/to/HYPIR_sd2.pth \
+./scripts/dev-local.sh
+```
+
+权重与环境准备以 [HYPIR 官方仓库](https://github.com/XPixelGroup/HYPIR) 为准。配置缺失或当前机器没有 CUDA 时，模型仍会出现在模型库中，但明确标记为不可用。1–8× 恢复结果作为独立底图查看，不会被错误地当成同尺寸 Mask 叠加。
+
 默认 API 仅监听 `127.0.0.1`，不会自动上传图片。只有配置并选择远程推理或云端 AI 服务后，才会产生相应网络请求。
 
 ## 项目结构

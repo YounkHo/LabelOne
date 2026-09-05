@@ -14,6 +14,7 @@ test('pipeline image uses transformed labels while source annotation editing sta
   const automaticPreview = page.slice(automaticPreviewStart, automaticPreviewEnd);
 
   assert.doesNotMatch(enable, /cancelAnnotationDrafting|setTool/);
+  assert.match(enable, /if \(enabled\) \{\s+setSinglePipelineSource\(finalPipelineSource\);\s+setVisualizationDisplayMode\('source'\)/);
   assert.doesNotMatch(scope, /cancelAnnotationDrafting|setTool/);
   assert.doesNotMatch(draw, /showingPipelinePreview|showingPipelineImage/);
   assert.equal(automaticPreviewCall >= 0 && automaticPreviewStart >= 0 && automaticPreviewEnd > automaticPreviewCall, true);
@@ -22,9 +23,11 @@ test('pipeline image uses transformed labels while source annotation editing sta
   assert.doesNotMatch(page, /const runPipeline|▶ 运行|重新校验处理流/);
   assert.match(page, /const canvasPresentation = resolveCanvasPresentation\(\{/);
   assert.match(page, /annotationShapes: draftShapes/);
-  assert.match(page, /pipelineAnnotationShapes: livePipelineAnnotationShapes/);
-  assert.match(page, /pipelineWidth: primaryPipelineVisualization\?\.width/);
-  assert.match(page, /pipelineHeight: primaryPipelineVisualization\?\.height/);
+  assert.match(page, /pipelineAnnotationShapes: liveDerivedAnnotationShapes/);
+  assert.match(page, /pipelineWidth: activeStandaloneRaster\?\.width \?\? canvasPipelineItem\?\.width/);
+  assert.match(page, /pipelineHeight: activeStandaloneRaster\?\.height \?\? canvasPipelineItem\?\.height/);
+  assert.match(page, /canvasCoordinateTransformFromPipelineMapping\(pipelineCoordinateMappingForItem\(canvasPipelineItem\)\)/);
+  assert.match(page, /draftShapes\.map\(\(shape\) => transformCanvasShape\(shape, activeCanvasCoordinateTransform\)\)/);
   assert.match(page, /const displayedShapes = canvasPresentation\.shapes/);
   assert.match(page, /const showingPipelineImage = canvasPresentation\.showingPipelineImage/);
   assert.match(page, /const objectListShapes = annotationObjects/);
@@ -34,8 +37,8 @@ test('pipeline image uses transformed labels while source annotation editing sta
   assert.match(page, /const sourceAnnotationPoint =/);
   assert.match(page, /const showControlPoints = !prediction && selectedShapeIndex === index/);
   assert.doesNotMatch(page, /selectedPreviewShapeIndex|处理流标注 · 只读副本|处理流只读副本/);
-  assert.match(page, /handlePipelineImageError\(pipelineImageUrl\)/);
-  assert.match(page, /pipelineImageRetryExhausted\(pipelineImageAttempts\[pipelineImageUrl\] \?\? 0\)/);
+  assert.match(page, /handlePipelineImageError\(activePipelineArtifactUrl\)/);
+  assert.match(page, /pipelineImageRetryExhausted\(pipelineImageAttempts\[activePipelineArtifactUrl\] \?\? 0\)/);
   assert.match(page, /已回退原图，画布仍可编辑/);
 });
 

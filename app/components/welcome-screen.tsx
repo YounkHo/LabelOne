@@ -70,10 +70,11 @@ export function WelcomeScreen(props: Props) {
         {recentProjects.length > 0 ? <div className="recent-project-list">
           {recentProjects.map((project) => {
             const opening = openingProjectId === project.dataset_id;
-            return <button type="button" key={project.dataset_id} disabled={!online || busy} onClick={() => onOpenRecent(project)}>
+            const unavailable = project.source_available === false;
+            return <button type="button" key={project.dataset_id} className={unavailable ? 'unavailable' : undefined} disabled={!online || busy} title={unavailable ? '源目录已移动、卸载或删除；点击查看详情' : undefined} onClick={() => onOpenRecent(project)}>
               <span className="recent-project-icon"><ProjectGlyph /></span>
               <span className="recent-project-copy"><strong>{project.name}</strong><small title={project.root_dir}>{project.root_dir}</small></span>
-              <span className="recent-project-meta"><strong>{opening ? '正在打开…' : `${project.summary.valid.toLocaleString()} 张`}</strong><small>{formatRecentTime(project.updated_at)}</small></span>
+              <span className="recent-project-meta"><strong>{opening ? '正在打开…' : unavailable ? '无法打开' : `${project.summary.valid.toLocaleString()} 张`}</strong><small>{unavailable ? '源目录已移动或删除' : formatRecentTime(project.updated_at)}</small></span>
             </button>;
           })}
         </div> : <div className="recent-project-empty">

@@ -16,6 +16,6 @@ test('root SVG owns move completion and protects overlap cycling from canvas zoo
   assert.match(page, /if \(shapeDragRef\.current\) \{\s+moveShape\(event\);\s+return;/);
   assert.match(page, /if \(shapeDragRef\.current\) \{\s+endShapeMove\(event\);\s+return;/);
   assert.match(page, /canvasAnnotationHitCandidates\(event\)\.length > 0[\s\S]*event\.stopPropagation\(\)/);
-  assert.match(page, /onDoubleClick=\{handleCanvasDoubleClick\}/);
+  assert.match(page, /onDoubleClick=\{canvasAnnotationEditable \? handleCanvasDoubleClick : undefined\}/);
   assert.match(page, /连续点击可切换重叠或相互包含的框/);
 });

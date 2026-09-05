@@ -107,6 +107,17 @@ export function pipelineLinearItems<
   ]);
 }
 
+export function finalPipelineVisualizationId(
+  nodes: PipelineGraphNode[],
+  visualizations: PipelineVisualizationNode[],
+): string {
+  const items = pipelineLinearItems(nodes, visualizations);
+  for (let index = items.length - 1; index >= 0; index -= 1) {
+    if (items[index].kind === 'visualize') return items[index].id;
+  }
+  return 'source';
+}
+
 export function pipelineInsertionGaps<
   TNode extends PipelineGraphNode,
   TVisualization extends PipelineVisualizationNode,

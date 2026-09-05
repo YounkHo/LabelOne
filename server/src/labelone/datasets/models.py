@@ -86,6 +86,8 @@ class RegisteredDataset(BaseModel):
     created_at: str
     updated_at: str
     index_revision: int = 1
+    source_available: bool = True
+    source_error: Literal["root_missing", "image_root_missing"] | None = None
 
 
 class DatasetListResponse(BaseModel):

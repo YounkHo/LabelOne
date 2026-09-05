@@ -9,9 +9,13 @@ test('all scope creates one revision and registry keyed background preview job a
   assert.match(page, /pipelineValidationReady/);
   assert.match(page, /currentPipelinePrecomputeJob && !pipelinePrecomputeMayAutoResume\)\) return/);
   assert.match(page, /priority: 'background'/);
+  assert.match(page, /const PIPELINE_PREVIEW_FORMAT = 'jpeg' as const/);
+  assert.match(page, /previewPipeline\(\{[^}]*output_format: PIPELINE_PREVIEW_FORMAT/);
+  assert.match(page, /prefetchPipelinePreview\(\{[^}]*output_format: PIPELINE_PREVIEW_FORMAT/);
   assert.match(page, /searchedDatasetIndexRevision[\s\S]*?backend\.datasets\.data\.datasets/);
   assert.match(page, /currentPipelineRegistryHash = validatedPipelineKey === currentPipelineValidationKey \? pipelineValidationState\.data\?\.registry_hash/);
-  assert.match(page, /pipelinePrecomputeKey\(dataset\.id, `\$\{currentPipelineExecutionSignature\}:format-\$\{PIPELINE_PREVIEW_FORMAT\}`\)/);
+  assert.match(page, /currentPipelineExecutionSignature = `\$\{currentPipelineSignature\}[^`]*:format-\$\{PIPELINE_PREVIEW_FORMAT\}`/);
+  assert.match(page, /pipelinePrecomputeKey\(dataset\.id, currentPipelineExecutionSignature\)/);
   assert.doesNotMatch(page, /pipelineOutputMode|pipelineOutputRoot|pipelineOutputFormat|pipelineOutputConflict/);
   assert.match(page, /ensurePipelinePrecompute\(\{/);
   assert.match(page, /output_policy: \{ mode: 'preview', image_format: PIPELINE_PREVIEW_FORMAT, conflict: 'reuse' \}/);

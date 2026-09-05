@@ -22,6 +22,7 @@ from .types import (
     ModelCatalogResponse,
     ModelDescriptor,
 )
+from .hypir_config import resolve_hypir_runtime
 
 
 @dataclass(frozen=True, slots=True)
@@ -74,6 +75,7 @@ def _catalog_paths(config_dir: Path) -> tuple[list[Path], list[CatalogWarning]]:
 def _task_for(model_type: str) -> str:
     value = model_type.casefold()
     rules = [
+        (("hypir", "super_resolution", "super-resolution"), "super_resolution"),
         (("obb", "rotation"), "rotated_detection"),
         (("pose", "dwpose", "rtmo"), "pose"),
         (("ocr", "ppocr"), "ocr"),
@@ -96,6 +98,8 @@ def _adapter_for(model_type: str, config: dict[str, Any]) -> tuple[str, str, Fea
     value = model_type.casefold()
     locations = _weight_locations(config)
     has_onnx = any(urlparse(location).path.casefold().endswith(".onnx") for location in locations)
+    if value in {"hypir", "hypir_sd2", "hypir-sd2"}:
+        return "hypir_sd2_pytorch", "HYPIR PyTorch / CUDA", FeatureCaptureMode.NONE
     if value in {"remote_server", "grounding_dino_api"}:
         if _trusted_remote_reason(config, require_secret=True) is None:
             return "trusted_remote_http", "Trusted Remote HTTPS", FeatureCaptureMode.NONE
@@ -178,6 +182,9 @@ def _trusted_remote_reason(config: dict[str, Any], *, require_secret: bool) -> s
 
 def _unsupported_reason(model_type: str, config: dict[str, Any]) -> str:
     value = model_type.casefold()
+    if value in {"hypir", "hypir_sd2", "hypir-sd2"}:
+        _, reason = resolve_hypir_runtime(config)
+        return reason or "HYPIR-SD2 runtime is not configured"
     if value in {"remote_server", "grounding_dino_api"}:
         return _trusted_remote_reason(config, require_secret=True) or "Remote protocol adapter is unavailable"
     if value == "upn":
@@ -334,6 +341,21 @@ def _parameters_schema(config: dict[str, Any], adapter: str) -> dict[str, Any]:
         number("min_mask_area", "最小区域面积", 1.0, 0.0, 1_000_000_000.0, "丢弃面积过小的分割区域。")
         number("polygon_simplify", "轮廓简化", 1.0, 0.0, 1_000.0, "输出多边形的简化强度。")
 
+    if adapter == "hypir_sd2_pytorch":
+        configured_prompt = configured("prompt", "")
+        properties["prompt"] = {
+            "title": "细节提示词",
+            "description": "描述希望恢复的主体和真实细节；留空也可以执行。",
+            "type": "string",
+            "default": configured_prompt if isinstance(configured_prompt, str) and len(configured_prompt) <= 512 else "",
+            "maxLength": 512,
+        }
+        integer("upscale", "放大倍数", 4, 1, 8, "按整数倍放大宽高；输出像素数会同步按平方增长。")
+        integer("patch_size", "分块尺寸", 512, 128, 2048, "VAE 与生成器的分块边长，必须是 8 的倍数且不小于步长。")
+        integer("stride", "分块步长", 256, 64, 2048, "相邻分块的步长，必须是 8 的倍数且不大于分块尺寸。")
+        integer("seed", "随机种子", 231, 0, 2**32 - 1, "控制潜空间采样，便于复现实验结果。")
+        choice("output_format", "输出格式", "png", ["png", "webp", "jpeg"], "超分结果 Artifact 的图像格式。")
+
     return {"type": "object", "additionalProperties": False, "properties": properties}
 
 
@@ -388,7 +410,13 @@ class ModelCatalog:
             has_remote_location = any(urlparse(location).scheme in {"http", "https"} for location in required_locations)
             requires_all = adapter in {"ppocr_onnx", "segment_anything_onnx"}
             has_local_weight = bool(local_paths) and (all(path.is_file() for path in local_paths) if requires_all else any(path.is_file() for path in local_paths))
-            if adapter in {"catalog_only", "remote_catalog"}:
+            if adapter == "hypir_sd2_pytorch":
+                _, hypir_reason = resolve_hypir_runtime(payload)
+                availability = Availability(
+                    state=AvailabilityState.AVAILABLE if hypir_reason is None else AvailabilityState.UNSUPPORTED,
+                    reason=hypir_reason,
+                )
+            elif adapter in {"catalog_only", "remote_catalog"}:
                 availability = Availability(
                     state=AvailabilityState.UNSUPPORTED,
                     reason=_unsupported_reason(model_type, payload),
@@ -418,6 +446,8 @@ class ModelCatalog:
                 result_kinds = ["classifications", "tensors"]
             elif adapter in {"depth_anything_onnx", "rmbg_matting_onnx"}:
                 result_kinds = ["rasters", "tensors"]
+            elif adapter == "hypir_sd2_pytorch":
+                result_kinds = ["rasters"]
             elif adapter == "segment_anything_onnx":
                 result_kinds = ["annotations", "rasters", "tensors"]
             elif adapter in annotation_adapters:
@@ -433,12 +463,16 @@ class ModelCatalog:
                 task=_task_for(model_type),
                 family=model_type.split("_")[0],
                 adapter=adapter,
+                source_url=str(payload["source_url"]) if isinstance(payload.get("source_url"), str) else None,
+                license_name=str(payload["license_name"]) if isinstance(payload.get("license_name"), str) else None,
+                license_url=str(payload["license_url"]) if isinstance(payload.get("license_url"), str) else None,
+                usage_notice=str(payload["usage_notice"]) if isinstance(payload.get("usage_notice"), str) else None,
                 runtime=[runtime],
                 config_path=config_path,
                 weight_locations=locations,
                 availability=availability,
                 capabilities=ModelCapabilities(
-                    predict=adapter in {"onnx_raw", "depth_anything_onnx", "rmbg_matting_onnx", "ram_tagging_onnx"} or adapter in annotation_adapters,
+                    predict=adapter in {"onnx_raw", "depth_anything_onnx", "rmbg_matting_onnx", "ram_tagging_onnx", "hypir_sd2_pytorch"} or adapter in annotation_adapters,
                     result_kinds=result_kinds,
                     feature_capture=FeatureCapture(
                         mode=capture_mode,
@@ -450,4 +484,24 @@ class ModelCatalog:
             records[model_id] = ModelRecord(descriptor=descriptor, config=payload)
         self._records = records
         self._warnings = warnings
+        return self.list()
+
+    def merge_x_anylabeling(self, root: Path) -> ModelCatalogResponse:
+        """Merge another recoverable catalog, letting the explicit source override built-ins."""
+        existing_records = dict(self._records)
+        existing_warnings = list(self._warnings)
+        self.import_x_anylabeling(root)
+        imported_records = dict(self._records)
+        imported_warnings = list(self._warnings)
+        duplicate_warnings = [
+            CatalogWarning(
+                path=record.descriptor.config_path,
+                code="model_override",
+                message=f"Explicit model source overrides built-in model {model_id}",
+            )
+            for model_id, record in imported_records.items()
+            if model_id in existing_records
+        ]
+        self._records = {**existing_records, **imported_records}
+        self._warnings = [*existing_warnings, *imported_warnings, *duplicate_warnings]
         return self.list()

@@ -17,7 +17,7 @@ test('canvas and list colors come from annotation categories rather than shape t
 });
 
 test('single-object visibility keeps every object row available for recovery', () => {
-  assert.ok(page.indexOf('className="side-section annotation-category-panel"') < page.indexOf('className="side-section annotation-object-panel"'));
+  assert.ok(page.indexOf('className="side-section annotation-category-panel"') < page.indexOf('annotation-object-panel'));
   assert.match(page, /<div className="annotation-category-icon">[\s\S]*?<label className="annotation-category-color"[\s\S]*?<button className=\{`annotation-category-visibility/);
   assert.match(page, /<input type="color"[^>]*value=\{categoryColors\.stroke\}[^>]*aria-label=\{`\u8bbe\u7f6e\u7c7b\u522b \$\{category\} \u7684\u989c\u8272`\}/);
   assert.match(page, /className=\{`annotation-category-visibility/);
@@ -151,7 +151,7 @@ test('toolbar separates canvas modes from drawing tools and uses a rotated recta
   assert.match(page, /role="group" aria-label="画布操作"/);
   assert.match(page, /role="group" aria-label="绘制标注"/);
   assert.match(page, /function ShapeTypeIcon\(/);
-  assert.match(page, /shapeType === 'rotation' \? <rect x="4" y="5" width="12" height="10"[^>]+rotate\(-14 10 10\)/);
+  assert.match(page, /normalizedShapeType === 'rotation' \? <rect x="4" y="5" width="12" height="10"[^>]+rotate\(-14 10 10\)/);
   assert.match(page, /<ShapeTypeIcon shapeType=\{id === 'brush' \? 'linestrip' : id\} \/>/);
   assert.doesNotMatch(page, /\['rotation',\s*'[◇▱]'/);
 });
@@ -169,7 +169,7 @@ test('line drawing uses two clicks instead of pointer drag completion', () => {
   assert.match(endDraw, /\['rect', 'rotation', 'circle'\]\.includes\(tool\)/);
   assert.doesNotMatch(endDraw, /\['rect', 'rotation', 'line', 'circle'\]/);
   assert.match(page, /const handleCanvasDoubleClick = [\s\S]*if \(tool === 'line'\) \{[\s\S]*event\.preventDefault\(\);[\s\S]*event\.stopPropagation\(\);/);
-  assert.match(page, /onDoubleClick=\{handleCanvasDoubleClick\}/);
+  assert.match(page, /onDoubleClick=\{canvasAnnotationEditable \? handleCanvasDoubleClick : undefined\}/);
   assert.match(page, /'点击确定直线起点 · 再点击确定终点'/);
   assert.match(page, /'移动指针预览 · 点击确定终点 · Esc 取消'/);
 });
@@ -181,7 +181,8 @@ test('file rows do not imply a nested destination', () => {
 test('canvas crosshair follows the pointer without blocking canvas interactions', () => {
   assert.match(page, /onPointerMoveCapture=\{updateCanvasCrosshair\}/);
   assert.match(page, /onPointerLeave=\{hideCanvasGuides\}/);
-  assert.match(page, /event\.pointerType === 'touch' \|\| dragRef\.current/);
+  assert.match(page, /const pointerType = 'pointerType' in event \? event\.pointerType : 'mouse'/);
+  assert.match(page, /pointerType === 'touch' \|\| dragRef\.current/);
   assert.match(page, /className="canvas-crosshair" aria-hidden="true"/);
   assert.doesNotMatch(page, /className="pixel-cursor"/);
   assert.match(page, /<PixelReadout cursor=\{cursor\} \/>/);
@@ -211,7 +212,7 @@ test('pixel coordinates and compact RGBA values live in the bottom status bar', 
 
 test('statusbar uses three balanced groups without exposing annotation revision', () => {
   assert.match(page, /className="statusbar-group statusbar-context"/);
-  assert.match(page, /className="statusbar-group statusbar-pixels"><PixelReadout cursor=\{cursor\} \/>/);
+  assert.match(page, /className="statusbar-group statusbar-pixels">[^\n]*<PixelReadout cursor=\{cursor\} \/>/);
   assert.match(page, /className="statusbar-group statusbar-actions"/);
   assert.match(page, /className="statusbar-group statusbar-context">[^\n]*<span className="healthy">/);
   assert.match(page, /className="statusbar-group statusbar-actions"><label className=\{`statusbar-grid-toggle/);
@@ -266,9 +267,8 @@ test('file JSON state uses the shared custom select and the row status slot', ()
   assert.match(css, /\.file-status-indicator\.failed\{border:1px solid #c86670;background:#351b20;color:#f5a0a8/);
   assert.match(css, /\.file-status-indicator\.progress>i\{background:conic-gradient/);
   assert.match(css, /\.file-status-indicator\.running>i\{[^}]*animation:file-status-spin \.8s linear infinite/);
-  assert.match(page, /const rowTitle = statusView\.kind !== 'empty' \? statusView\.label/);
-  assert.match(page, /data-tooltip=\{rowTitle\}/);
-  assert.doesNotMatch(page, /title=\{rowTitle\}|title=\{statusView\.label\}/);
+  assert.match(page, /data-tooltip=\{statusView\.kind !== 'empty' \? statusView\.label : undefined\}/);
+  assert.doesNotMatch(page, /title=\{statusView\.label\}/);
   assert.doesNotMatch(page, /nextFileAnnotationFilter/);
   assert.doesNotMatch(css, /\.annotation-status-mark/);
   assert.doesNotMatch(page, /filter === 'exceptions'/);
@@ -290,13 +290,13 @@ test('canvas cursor styling differentiates selection, pan, drawing, resizing and
   assert.match(css, /\.rotation-corner-handle\{cursor:url\('\/cursors\/rotate\.svg'\) 12 12,crosshair/);
 });
 
-test('current-image auto-save lives in the statusbar without legacy save actions', () => {
+test('global auto-save lives in the statusbar and persists across image loads', () => {
   assert.doesNotMatch(page, /文件⌄|工具⌄|fileMenuOpen|toolsOpen|className="tools-menu/);
   assert.doesNotMatch(css, /\.tools-menu|\.tools-button|\.file-autosave-toggle/);
   assert.equal(page.match(/className="open-dataset-button"/g)?.length, 1);
   assert.match(page, /className={`statusbar-autosave \$\{annotationAutoSave \? 'active' : ''\}/);
-  assert.match(page, /role="switch" aria-label="当前图自动保存" aria-describedby="current-image-save-status" aria-checked=\{annotationAutoSave\}/);
-  assert.match(page, /id="current-image-save-status" aria-live="polite"/);
+  assert.match(page, /role="switch" aria-label="全局自动保存" aria-describedby="global-annotation-save-status" aria-checked=\{annotationAutoSave\}/);
+  assert.match(page, /id="global-annotation-save-status" aria-live="polite"/);
   assert.match(page, /<div className="top-actions">/);
   assert.match(page, /const saveModeLabel = annotationSaving/);
   assert.match(page, /\? '本机草稿'/);
@@ -304,8 +304,11 @@ test('current-image auto-save lives in the statusbar without legacy save actions
   assert.match(page, /: '已保存'/);
   assert.doesNotMatch(page, /top-quick-action|save-state|save-mode-button/);
   assert.doesNotMatch(page, /设置标注目录|导入当前标注 JSON|导出当前标注 JSON|annotationImportPreview/);
-  assert.doesNotMatch(page, /state\.annotationAutoSave/);
-  assert.match(page, /annotationAutoSaveRef\.current = DEFAULT_ANNOTATION_AUTO_SAVE/);
+  assert.match(page, /normalizeAnnotationAutoSavePreference\(state\.annotationAutoSave\)/);
+  assert.match(page, /defaultInferenceProvider: inferenceProvider,[\s\S]*?annotationAutoSave,/);
+  const loadAnnotation = page.match(/const loadAnnotationFor = async[\s\S]*?annotationLoaderRef\.current = loadAnnotationFor;/)?.[0] ?? '';
+  assert.doesNotMatch(loadAnnotation, /setAnnotationAutoSave\(DEFAULT_ANNOTATION_AUTO_SAVE\)/);
+  assert.doesNotMatch(loadAnnotation, /annotationAutoSaveRef\.current = DEFAULT_ANNOTATION_AUTO_SAVE/);
   assert.match(css, /\.statusbar-autosave\{/);
   assert.match(css, /\.statusbar-autosave>i\{[^}]+border-radius:999px/);
   assert.match(css, /\.statusbar-autosave\{height:24px\}/);
@@ -366,7 +369,7 @@ test('canvas pipeline entry exposes a compact read-only preview without changing
   assert.match(preview, /isDisplay \? `D\$\{displayIndex \+ 1\}` : mainIndex \+ 1/);
   assert.doesNotMatch(preview, /<button|<input|<select|<textarea|onClick|contentEditable/);
   assert.match(page, /rightTab === 'pipeline' && <section className="pipeline-panel">/);
-  assert.doesNotMatch(page, /openRightTab\('pipeline'\)|pipelineDrawer|setPipelineDrawer|pipeline-drawer|画布快捷栏|处理流快捷控制|编辑完整流程/);
+  assert.doesNotMatch(page, /pipelineDrawer|setPipelineDrawer|pipeline-drawer|画布快捷栏|处理流快捷控制|编辑完整流程/);
   assert.doesNotMatch(css, /\.pipeline-drawer|\.quick-flow|\.quick-node|\.drawer-close|drawer-up|\.pipeline-chip\.panel-open/);
   assert.match(css, /\.pipeline-summary-popover\{position:absolute;[^}]*width:min\(244px/);
   assert.match(css, /\.pipeline-summary-popover ol\{[^}]*overflow-y:auto/);
@@ -395,7 +398,7 @@ test('canvas labels keep screen-sized typography and adapt at image edges', () =
   assert.match(page, /const currentIndex = selectedShapeIndex;\s+const hitIndex = selectAnnotationHitIndex\(candidates, currentIndex, event\.detail > 1\)/);
   assert.match(page, /startShapeMove\(hitIndex, event\)/);
   assert.doesNotMatch(page, /onPointerDown: \(event: React\.PointerEvent<SVGElement>\) => startShapeMove\(index, event\)/);
-  assert.match(page, /onDoubleClick=\{handleCanvasDoubleClick\}/);
+  assert.match(page, /onDoubleClick=\{canvasAnnotationEditable \? handleCanvasDoubleClick : undefined\}/);
   assert.match(page, /data-shape-index=\{index\}/);
   assert.match(page, /shape-canvas-label[^`]+\$\{selected \? 'selected' : ''\}/);
   assert.match(page, /list\.scrollTo\(\{ top, behavior: reduceMotion \? 'auto' : 'smooth' \}\)/);

@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { formatPipelineTiming, neighboringAssetIds, PIPELINE_IMAGE_RETRY_LIMIT, pipelineArtifactDisplayUrl, pipelineImageRetryExhausted, pipelinePrecomputeKey, pipelinePreviewCacheKey, pipelinePreviewResultFromJobItem, pipelineRequestNodesEqual, storeCachedPipelinePreview, takeCachedPipelinePreview, pipelineValidationKey } from './pipeline-preview.ts';
+import { formatPipelineTiming, hasDisplayablePipelinePane, neighboringAssetIds, PIPELINE_IMAGE_RETRY_LIMIT, pipelineArtifactDisplayUrl, pipelineImageRetryExhausted, pipelineModelFeatureRuntimeKey, pipelinePrecomputeKey, pipelinePreviewCacheKey, pipelinePreviewResultFromJobItem, pipelineRequestNodesEqual, storeCachedPipelinePreview, takeCachedPipelinePreview, pipelineValidationKey } from './pipeline-preview.ts';
 
 test('pipeline artifact display retries use a fresh URL and stop after a bounded limit', () => {
+  assert.equal(pipelineArtifactDisplayUrl('/api/pipeline-artifacts/abc', 4, 0), '/api/pipeline-artifacts/abc');
   assert.equal(pipelineArtifactDisplayUrl('/api/pipeline-artifacts/abc', 4, 1), '/api/pipeline-artifacts/abc?display=4-1');
   assert.equal(pipelineArtifactDisplayUrl('/api/pipeline-artifacts/abc?x=1', 4, 2), '/api/pipeline-artifacts/abc?x=1&display=4-2');
   assert.equal(pipelineImageRetryExhausted(PIPELINE_IMAGE_RETRY_LIMIT), false);
@@ -47,6 +48,22 @@ test('persisted precompute nodes compare canonically after reload', () => {
   const right = [{ kind: 'resize', parameters: { height: 3, width: 2 }, enabled: true, id: 'a' }];
   assert.equal(pipelineRequestNodesEqual(left, right), true);
   assert.equal(pipelineRequestNodesEqual(left, [{ ...right[0], id: 'b' }]), false);
+});
+
+test('model feature runtime identity changes when a restored model becomes loaded', () => {
+  const nodes = [
+    { kind: 'source', enabled: true, parameters: {} },
+    { kind: 'model_feature', enabled: true, parameters: { model_id: 'edge-model', layer_id: 'neck.2' } },
+  ];
+  assert.equal(pipelineModelFeatureRuntimeKey(nodes, null, { 'edge-model': { runtime_state: 'failed' } }), 'edge-model:failed');
+  assert.equal(pipelineModelFeatureRuntimeKey(nodes, { model_id: 'edge-model', state: 'loaded' }, { 'edge-model': { runtime_state: 'failed' } }), 'edge-model:loaded');
+  assert.equal(pipelineModelFeatureRuntimeKey([{ ...nodes[1], enabled: false }], null, null), 'none');
+});
+
+test('pipeline panes require at least one real display URL before replacing the source image', () => {
+  assert.equal(hasDisplayablePipelinePane([]), false);
+  assert.equal(hasDisplayablePipelinePane([{ displayUrl: null }, {}]), false);
+  assert.equal(hasDisplayablePipelinePane([{ displayUrl: null }, { displayUrl: '/artifact/ready' }]), true);
 });
 
 test('timing formatting stays compact and includes real sample count', () => {

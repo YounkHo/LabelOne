@@ -26,6 +26,34 @@ export function inferenceRasterMatchesSource(
   return Boolean(sourceWidth && sourceHeight && raster.width === sourceWidth && raster.height === sourceHeight);
 }
 
+export type InferenceRasterDisplayMode = 'overlay' | 'standalone' | 'unsupported';
+
+export function inferenceRasterDisplayMode(
+  raster: { role: string; width: number; height: number; metadata?: Record<string, unknown> },
+  sourceWidth: number | undefined,
+  sourceHeight: number | undefined,
+): InferenceRasterDisplayMode {
+  if (!sourceWidth || !sourceHeight || sourceWidth <= 0 || sourceHeight <= 0) return 'unsupported';
+  const kind = String(raster.metadata?.kind ?? '').toLocaleLowerCase();
+  const role = raster.role.toLocaleLowerCase();
+  const superResolution = kind === 'super_resolution' || role.includes('super-resolution') || role.includes('super_resolution');
+  const scaleX = raster.width / sourceWidth;
+  const scaleY = raster.height / sourceHeight;
+  if (superResolution) {
+    return Number.isFinite(scaleX) && scaleX >= 1 && Math.abs(scaleX - scaleY) <= 1e-6 ? 'standalone' : 'unsupported';
+  }
+  return inferenceRasterMatchesSource(raster, sourceWidth, sourceHeight) ? 'overlay' : 'unsupported';
+}
+
+export function inferenceRasterCanvasScale(
+  raster: { role: string; width: number; height: number; metadata?: Record<string, unknown> },
+  sourceWidth: number | undefined,
+  sourceHeight: number | undefined,
+): number | null {
+  if (inferenceRasterDisplayMode(raster, sourceWidth, sourceHeight) !== 'standalone' || !sourceWidth) return null;
+  return raster.width / sourceWidth;
+}
+
 export function inferenceAnnotationsAreSegmentation(task: string, adapter?: string): boolean {
   const identity = `${task} ${adapter ?? ''}`.trim().toLocaleLowerCase();
   return identity.includes('segmentation') || identity.includes('segment_anything') || identity.includes('分割');

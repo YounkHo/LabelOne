@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import './hypir.css';
 
 export const metadata: Metadata = {
   title: 'LabelOne · 图像数据工作台',

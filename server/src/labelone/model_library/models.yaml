@@ -1,0 +1,2 @@
+- model_name: hypir-sd2
+  config_file: :/hypir_sd2.yaml

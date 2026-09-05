@@ -7,7 +7,8 @@ const css = readFileSync(new URL('../globals.css', import.meta.url), 'utf8');
 const shortcuts = readFileSync(new URL('./keyboard-shortcuts.ts', import.meta.url), 'utf8');
 
 test('freehand drawing explains that it creates an open continuous line', () => {
-  assert.match(page, /\['brush', '〰', '自由线'\]/);
+  assert.match(page, /\['brush', '自由线'\]/);
+  assert.match(page, /<ShapeTypeIcon shapeType=\{id === 'brush' \? 'linestrip' : id\}/);
   assert.match(page, /data-tooltip=\{guidance\}/);
   assert.match(page, /自由线 · 按住左键拖动绘制 · 松开完成 · 不会闭合/);
   assert.match(page, /正在绘制开放连续线 · 松开完成并选择标签/);

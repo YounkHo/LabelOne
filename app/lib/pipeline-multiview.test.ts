@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { canHidePipelineLayer, containedPipelineImageRect, createPipelineSharedCursor, normalizedPipelinePan, pipelinePaneMetrics, pipelinePaneTransform, pipelinePaneVectorToReference, pipelineWheelInputToReference, pipelineSharedCursorPointForPane, resolvePipelineDisplayMode, snapPipelineGridCoordinate, stablePipelineDisplaySlots, updatePipelineLayerOpacity, updatePipelineLayerVisibility, type PipelineCoordinateMappingLike } from './pipeline-multiview.ts';
+import { canHidePipelineLayer, canvasCoordinateTransformFromPipelineMapping, containedPipelineImageRect, createPipelineSharedCursor, normalizedPipelinePan, pipelinePaneMetrics, pipelinePaneTransform, pipelinePaneVectorToReference, pipelineWheelInputToReference, pipelineSharedCursorPointForPane, resolvePipelineDisplayMode, snapPipelineGridCoordinate, stablePipelineDisplaySlots, updatePipelineLayerOpacity, updatePipelineLayerVisibility, type PipelineCoordinateMappingLike } from './pipeline-multiview.ts';
 
 test('pixel grid coordinates snap to one-device-pixel centers at every DPR', () => {
   assert.equal(snapPipelineGridCoordinate(10.2, 1), 10.5);
@@ -100,6 +100,28 @@ test('cursor maps through source coordinates across crop and resize panes', () =
   assert.deepEqual(pipelineSharedCursorPointForPane(cursor, 'source', 1000, 800, source), { x: 100, y: 50 });
   assert.deepEqual(pipelineSharedCursorPointForPane(cursor, 'resize', 2000, 1600, resize), { x: 200, y: 100 });
   assert.deepEqual(pipelineSharedCursorPointForPane(cursor, 'other-crop', 200, 200, otherCrop), { x: 0, y: 0 });
+});
+
+test('an affine pipeline mapping becomes an invertible canvas edit transform', () => {
+  const transform = canvasCoordinateTransformFromPipelineMapping({
+    kind: 'affine',
+    source_width: 1000,
+    source_height: 800,
+    output_width: 400,
+    output_height: 300,
+    source_to_output: [1, 0, 0, 1, -100, -50],
+    output_to_source: [1, 0, 0, 1, 100, 50],
+    coordinate_space_id: 'crop',
+    topology_safe: false,
+  });
+  assert.deepEqual(transform, {
+    a: 1, b: 0, c: 0, d: 1, e: -100, f: -50,
+    width: 400, height: 300, topologySafe: false,
+  });
+  assert.equal(canvasCoordinateTransformFromPipelineMapping({
+    kind: 'unavailable', source_width: 1000, source_height: 800, output_width: 32, output_height: 1,
+    coordinate_space_id: 'vector', topology_safe: false,
+  }), null);
 });
 
 test('unavailable mappings keep a local cursor but never fake a cross-domain cursor', () => {

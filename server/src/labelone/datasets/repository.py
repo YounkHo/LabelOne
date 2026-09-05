@@ -406,15 +406,20 @@ class DatasetRepository:
 
     @staticmethod
     def _dataset(row: sqlite3.Row) -> RegisteredDataset:
+        root_dir = Path(row["root_dir"])
+        image_root = Path(row["image_root"])
+        source_error = "root_missing" if not root_dir.is_dir() else "image_root_missing" if not image_root.is_dir() else None
         return RegisteredDataset(
             dataset_id=row["dataset_id"],
             name=row["name"],
-            root_dir=Path(row["root_dir"]),
-            image_root=Path(row["image_root"]),
+            root_dir=root_dir,
+            image_root=image_root,
             summary=DatasetScanSummary.model_validate_json(row["summary_json"]),
             created_at=row["created_at"],
             updated_at=row["updated_at"],
             index_revision=int(row["index_revision"]),
+            source_available=source_error is None,
+            source_error=source_error,
         )
 
     @staticmethod
@@ -449,8 +454,21 @@ class DatasetRepository:
             raise InvalidPathError("Unknown dataset", details={"dataset_id": dataset_id})
         return self._dataset(row)
 
+    def require_dataset_source(self, dataset_id: str) -> RegisteredDataset:
+        dataset = self.get_dataset(dataset_id)
+        if dataset.source_available:
+            return dataset
+        raise InvalidPathError(
+            "数据集源目录不存在或不可访问，请重新选择当前项目文件夹",
+            details={
+                "dataset_id": dataset_id,
+                "reason": dataset.source_error or "source_unavailable",
+                "root_dir": str(dataset.root_dir),
+            },
+        )
+
     def list_assets(self, dataset_id: str, *, offset: int = 0, limit: int = 200) -> AssetListResponse:
-        self.get_dataset(dataset_id)
+        self.require_dataset_source(dataset_id)
         limit = max(1, min(limit, 1000))
         offset = max(0, offset)
         with self._lock:
@@ -475,6 +493,7 @@ class DatasetRepository:
         limit: int,
         regex=None,
     ) -> AssetCursorPage:
+        self.require_dataset_source(dataset_id)
         safe_limit = max(1, min(limit, 1000))
         with self._lock:
             dataset = self._connection.execute(
@@ -590,7 +609,7 @@ class DatasetRepository:
         annotated: bool | None = None,
         has_annotation_file: bool | None = None,
     ) -> AssetListResponse:
-        self.get_dataset(dataset_id)
+        self.require_dataset_source(dataset_id)
         expression, query_parameters, regex = compile_asset_sql(query, mode)
         where = ["dataset_id=?", f"({expression})"]
         parameters: list[object] = [dataset_id, *query_parameters]

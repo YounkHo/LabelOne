@@ -62,6 +62,10 @@ class ModelDescriptor(BaseModel):
     task: str
     family: str
     adapter: str
+    source_url: str | None = None
+    license_name: str | None = None
+    license_url: str | None = None
+    usage_notice: str | None = None
     runtime: list[str] = Field(default_factory=list)
     config_path: Path
     weight_locations: list[str] = Field(default_factory=list)

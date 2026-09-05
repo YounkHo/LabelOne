@@ -13,24 +13,25 @@ import { ModelPickerDialog } from './components/model-picker-dialog';
 import { UiLanguageBridge } from './components/ui-language-bridge';
 import { WelcomeScreen } from './components/welcome-screen';
 import { useLocalBackend } from './hooks/use-local-backend';
+import { LocalApiError } from './lib/local-api';
 import { deleteAnnotationDraft, getAnnotationDraft, putAnnotationDraft, type PersistedAnnotationDraft } from './lib/annotation-drafts';
 import { annotationFingerprint, commitAnnotationHistory, createAnnotationHistory, redoAnnotationHistory, undoAnnotationHistory, type AnnotationHistory } from './lib/annotation-history';
 import { annotationCategoryColors, normalizeAnnotationCategoryColor } from './lib/annotation-category-colors';
 import { annotationIndexesForCategory, normalizeAnnotationCategory, setAnnotationIndexesVisible } from './lib/annotation-category-filter';
-import { DEFAULT_ANNOTATION_AUTO_SAVE, shouldWriteAnnotationFile } from './lib/annotation-save-policy';
+import { DEFAULT_ANNOTATION_AUTO_SAVE, normalizeAnnotationAutoSavePreference, shouldWriteAnnotationFile } from './lib/annotation-save-policy';
 import { buildAnnotationLabelChoices, normalizeAnnotationLabel, positionFloatingLabelMenu, type ScreenPoint } from './lib/annotation-labels';
 import { annotationHitCandidates, annotationShapeClass, canClosePolygonAtPoint, compactFreehandPoints, createDragShape, createFreehandLine, editableControlPointIndexes, moveShapeControlPoint, polygonVertexControlPath, rotateRotationShape, rotationCenter, rotationCornerHandle, rotationDirection, selectAnnotationHitIndex, translateShapeWithinImage, type AnnotationPoint } from './lib/annotation-tools';
 import { remapHiddenShapesAfterDeletion, remapHiddenShapesAfterDeletions, remapSelectedShapeAfterDeletion, remapSelectedShapeAfterDeletions } from './lib/annotation-visibility';
-import { BACKGROUND_TASK_ACTIVE_STATES, BACKGROUND_TASK_ATTENTION_STATES, BACKGROUND_TASK_HISTORY_HOURS, clearableCompletedTaskIds, filterBackgroundTaskHistory, type BackgroundTaskHistoryHours } from './lib/background-task-history';
+import { BACKGROUND_TASK_ACTIVE_STATES, BACKGROUND_TASK_ATTENTION_STATES, BACKGROUND_TASK_HISTORY_HOURS, clearableCompletedTaskIds, coalesceBackgroundTaskHistory, filterBackgroundTaskHistory, type BackgroundTaskHistoryHours } from './lib/background-task-history';
 import { applyCanvasWheel, CANVAS_ZOOM_STEP, canvasScaleForSourcePixelSize, canvasScaleFromPercent, isBrowserZoomKeyboardShortcut, isSourcePixelGridVisible, maximumCanvasScaleForPixelInspection, MAX_SOURCE_PIXEL_INSPECTION_SIZE, MIN_SOURCE_PIXEL_GRID_SIZE, sourcePixelScreenSize, zoomCanvasView } from './lib/canvas-viewport';
 import { resolveCanvasCursorMode, resolveResizeCursor } from './lib/canvas-cursor';
 import { inverseTransformCanvasDelta, inverseTransformCanvasPoint, inverseTransformCanvasShape, resolveCanvasPresentation, resolvePipelineCoordinateTransform, shouldSwitchToSelectAfterBlankClick, transformCanvasShape, type CanvasCoordinateTransform } from './lib/canvas-interaction';
 import { CANVAS_CONTROL_POINT_RADIUS_PX, CANVAS_VERTEX_CONTROL_DIAMETER_PX, canvasAnnotationOpticalScale, canvasLabelLayouts, canvasLabelOpacity, canvasLabelTopVertexAnchor, canvasVisibleImageBounds, fitCanvasLabelText, type CanvasLabelLayout } from './lib/canvas-label';
 import { navigatorPointToView, navigatorViewport, type CanvasNavigatorMetrics } from './lib/canvas-navigator';
 import { pixelSampleFromRgba, sourcePixelAtDisplayPoint, type PixelSample } from './lib/pixel-sampling';
-import { insertPipelineNode, insertPipelineNodeAtGap, MAX_PIPELINE_VISUALIZATIONS, normalizeVisualizationTaps, pipelineInsertionGaps, pipelineLinearItems, pipelineSignature, removePipelineNode, serializePipelineNodes, visualizationOverlayCompatibility, type PipelineInsertionGap, type PipelineVisualizationNode } from './lib/pipeline-flow';
-import { formatPipelineTiming, neighboringAssetIds, pipelineArtifactDisplayUrl, pipelineImageRetryExhausted, pipelinePrecomputeKey, pipelinePreviewCacheKey, pipelinePreviewResultFromJobItem, pipelineRequestNodesEqual, pipelineValidationKey, storeCachedPipelinePreview, takeCachedPipelinePreview } from './lib/pipeline-preview';
-import { canHidePipelineLayer, containedPipelineImageRect, createPipelineSharedCursor, pipelineCoordinateMappingFromTransform, pipelinePaneMetrics, pipelinePaneTransform, pipelinePaneVectorToReference, pipelineWheelInputToReference, pipelineSharedCursorPointForPane, resolvePipelineDisplayMode, snapPipelineGridCoordinate, stablePipelineDisplaySlots, updatePipelineLayerOpacity, updatePipelineLayerVisibility, type PipelineCoordinateMappingLike, type PipelineDisplayMode, type PipelineSharedCursor } from './lib/pipeline-multiview';
+import { finalPipelineVisualizationId, insertPipelineNode, insertPipelineNodeAtGap, MAX_PIPELINE_VISUALIZATIONS, normalizeVisualizationTaps, pipelineInsertionGaps, pipelineLinearItems, pipelineSignature, removePipelineNode, serializePipelineNodes, visualizationOverlayCompatibility, type PipelineInsertionGap, type PipelineVisualizationNode } from './lib/pipeline-flow';
+import { formatPipelineTiming, hasDisplayablePipelinePane, neighboringAssetIds, pipelineArtifactDisplayUrl, pipelineImageRetryExhausted, pipelineModelFeatureRuntimeKey, pipelinePrecomputeKey, pipelinePreviewCacheKey, pipelinePreviewResultFromJobItem, pipelineRequestNodesEqual, pipelineValidationKey, storeCachedPipelinePreview, takeCachedPipelinePreview } from './lib/pipeline-preview';
+import { canHidePipelineLayer, canvasCoordinateTransformFromPipelineMapping, containedPipelineImageRect, createPipelineSharedCursor, pipelineCoordinateMappingFromTransform, pipelinePaneMetrics, pipelinePaneTransform, pipelinePaneVectorToReference, pipelineWheelInputToReference, pipelineSharedCursorPointForPane, resolvePipelineDisplayMode, snapPipelineGridCoordinate, stablePipelineDisplaySlots, updatePipelineLayerOpacity, updatePipelineLayerVisibility, type PipelineCoordinateMappingLike, type PipelineDisplayMode, type PipelineSharedCursor } from './lib/pipeline-multiview';
 import type { AgentCapability, AgentRunResult, AgentToolName, AgentToolResult, AnnotationEnvelope, AnnotationShape, AssetCursorPage, DatasetAssetSearchInput, DatasetScanItem, DatasetScanResult, DatasetWorkspaceSettingsResponse, FeatureLayer, JobRecord, NetworkProxySettings, PipelineFlowNode, PipelineOperatorContract, PipelineOperatorInspection, PipelineVisualizationResult, RegisteredDataset, TileMetadata, WorkspacePipelineSettings } from './lib/contracts';
 import { directoryBasename, formatDownloadProgress } from './lib/dataset-stream';
 import { fileAnnotationFilterLabels, fileAnnotationFilters, type FileAnnotationFilter } from './lib/file-annotation-filter';
@@ -41,7 +42,7 @@ import { resolveFileStatusIndicator, selectFileProgressJob } from './lib/file-st
 import { resolveCurrentFilePath } from './lib/current-file-path';
 import { defaultShortcutMap, displayShortcut, findShortcutConflict, isForbiddenShortcut, resolveShortcutAction, resolvedShortcutMap, sanitizeShortcutOverrides, shortcutAriaLabel, shortcutDefinitions, shortcutFromKeyboardEvent, type ShortcutActionId, type ShortcutOverrides } from './lib/keyboard-shortcuts';
 import { remoteInferenceConsentMatches, requiresRemoteInferenceConfirmation, type RemoteInferenceConsentContext } from './lib/real-workflows';
-import { groupInferencePredictionsByCategory, inferenceAnnotationsAreSegmentation, inferencePredictionKey, inferenceRasterMatchesSource, inferenceResultFromJobItem, latestInferenceJobForModel } from './lib/inference-results';
+import { groupInferencePredictionsByCategory, inferenceAnnotationsAreSegmentation, inferencePredictionKey, inferenceRasterCanvasScale, inferenceRasterDisplayMode, inferenceRasterMatchesSource, inferenceResultFromJobItem, latestInferenceJobForModel } from './lib/inference-results';
 import { globalWorkspaceSettings, snapshotPipelineSettings, usablePipelineSettings } from './lib/workspace-settings';
 
 type FileStatus = 'valid' | 'duplicate' | 'corrupt' | 'orphan';
@@ -131,6 +132,10 @@ type ModelView = {
   badge: string;
   family: string;
   adapter?: string;
+  sourceUrl?: string | null;
+  licenseName?: string | null;
+  licenseUrl?: string | null;
+  usageNotice?: string | null;
   predict?: boolean;
   capture: boolean;
   real?: boolean;
@@ -147,7 +152,7 @@ type ModelView = {
 const EMPTY_DATASET: DatasetView = { name: '未打开项目', path: '', total: 0, files: [] };
 const EMPTY_MODEL: ModelView = { id: '', name: '未选择模型', task: '—', runtime: '—', badge: '—', family: '', capture: false, availability: 'unavailable', parametersSchema: {}, runtimeState: 'unloaded', usageCount: 0, lastUsedAt: null };
 const LARGE_IMAGE_TILE_THRESHOLD_PIXELS = 4096 * 4096;
-const PIPELINE_PREVIEW_FORMAT = 'webp' as const;
+const PIPELINE_PREVIEW_FORMAT = 'jpeg' as const;
 
 function nextGeneratedSequence(ids: string[], minimum = 2): number {
   return Math.max(minimum, ...ids.map((id) => Number(id.match(/-(\d+)$/)?.[1] ?? 0) + 1));
@@ -605,6 +610,9 @@ export default function Home() {
   const [currentFileId, setCurrentFileId] = useState('');
   const [openingRecentDatasetId, setOpeningRecentDatasetId] = useState<string | null>(null);
   const [welcomeError, setWelcomeError] = useState('');
+  const [unavailableProjectRemoval, setUnavailableProjectRemoval] = useState<RegisteredDataset | null>(null);
+  const [unavailableProjectRemovalPending, setUnavailableProjectRemovalPending] = useState(false);
+  const [unavailableProjectRemovalError, setUnavailableProjectRemovalError] = useState('');
   const [recentProjectIds, setRecentProjectIds] = useState<string[]>([]);
   const [filter, setFilter] = useState<FileAnnotationFilter>('all');
   const [search, setSearch] = useState('');
@@ -668,8 +676,8 @@ export default function Home() {
   const [pipelineConstraintMessage, setPipelineConstraintMessage] = useState('');
   const [pipelinePrecomputeJob, setPipelinePrecomputeJob] = useState<{ key: string; jobId: string } | null>(null);
   const [automaticallyPausedPipelineJobs, setAutomaticallyPausedPipelineJobs] = useState<Set<string>>(() => new Set());
-  const [visualizationDisplayMode, setVisualizationDisplayMode] = useState<PipelineDisplayMode>('split');
-  const [singlePipelineSource, setSinglePipelineSource] = useState('source');
+  const [visualizationDisplayMode, setVisualizationDisplayMode] = useState<PipelineDisplayMode>('source');
+  const [singlePipelineSource, setSinglePipelineSource] = useState(() => finalPipelineVisualizationId(initialNodes, initialVisualizations));
   const [visualizationLayerState, setVisualizationLayerState] = useState<Record<string, { visible: boolean; opacity: number }>>({});
   const [pipelineEnabled, setPipelineEnabled] = useState(true);
   const [pipelineSummaryOpen, setPipelineSummaryOpen] = useState(false);
@@ -696,6 +704,7 @@ export default function Home() {
   const [featureChannel, setFeatureChannel] = useState(0);
   const [featureClip, setFeatureClip] = useState('p1p99');
   const [selectedRasterId, setSelectedRasterId] = useState<string | null>(null);
+  const [selectedStandaloneRasterId, setSelectedStandaloneRasterId] = useState<string | null>(null);
   const [completedInferenceSignature, setCompletedInferenceSignature] = useState('');
   const [rasterOpacity, setRasterOpacity] = useState(58);
   const [samPromptMode, setSamPromptMode] = useState(false);
@@ -741,14 +750,15 @@ export default function Home() {
   const taskStreamVisible = taskStreamOpen || taskStreamHovered || taskStreamFocused;
   const [dismissedTaskVersions, setDismissedTaskVersions] = useState<Record<string, string>>({});
   const [taskHistoryHours, setTaskHistoryHours] = useState<BackgroundTaskHistoryHours>(24);
-  const taskStreamJobs = useMemo(() => filterBackgroundTaskHistory(backendJobs, dismissedTaskVersions, taskHistoryHours)
+  const taskStreamJobs = useMemo(() => coalesceBackgroundTaskHistory(filterBackgroundTaskHistory(backendJobs, dismissedTaskVersions, taskHistoryHours), selectedJobId)
     .sort((left, right) => {
       const priority = (job: JobRecord) => ACTIVE_TASK_STATES.has(job.state) ? 0 : BACKGROUND_TASK_ATTENTION_STATES.has(job.state) ? 1 : 2;
       return priority(left) - priority(right) || Date.parse(right.updated_at) - Date.parse(left.updated_at);
-    }).slice(0, 8), [backendJobs, dismissedTaskVersions, taskHistoryHours]);
+    }).slice(0, 8), [backendJobs, dismissedTaskVersions, selectedJobId, taskHistoryHours]);
   const activeTaskCount = taskStreamJobs.filter((job) => ACTIVE_TASK_STATES.has(job.state)).length;
   const attentionTaskCount = taskStreamJobs.filter((job) => BACKGROUND_TASK_ATTENTION_STATES.has(job.state)).length;
   const latestBackgroundTask = taskStreamJobs[0] ?? null;
+  const selectedBackgroundTask = selectedJobId ? taskStreamJobs.find((job) => job.logical_job_ids.includes(selectedJobId)) ?? null : null;
   const clearableTaskIds = clearableCompletedTaskIds(taskStreamJobs);
   const [agentInput, setAgentInput] = useState('');
   const [agentSending, setAgentSending] = useState(false);
@@ -806,7 +816,7 @@ export default function Home() {
   const polygonDraftRef = useRef<AnnotationPoint[]>([]);
   const brushRef = useRef<{ pointerId: number; points: AnnotationPoint[] } | null>(null);
   const samBoxDragRef = useRef<{ startX: number; startY: number } | null>(null);
-  const weightDownloadPendingRef = useRef(new Set<string>());
+  const modelDownloadActionPendingRef = useRef(false);
   const completedWeightJobsRef = useRef(new Set<string>());
   const autoLoadAfterDownloadRef = useRef<string | null>(null);
   const completedCategoryRenameJobsRef = useRef(new Set<string>());
@@ -881,9 +891,13 @@ export default function Home() {
     name: model.display_name,
     task: model.task,
     runtime: model.runtime.join(' / '),
-    badge: model.adapter === 'yolo_detection_onnx' ? 'YOLO' : model.adapter === 'onnx_raw' ? 'ONNX' : '计划',
+    badge: model.adapter === 'yolo_detection_onnx' ? 'YOLO' : model.adapter === 'onnx_raw' ? 'ONNX' : model.adapter === 'hypir_sd2_pytorch' ? 'HY' : '计划',
     family: model.family,
     adapter: model.adapter,
+    sourceUrl: model.source_url,
+    licenseName: model.license_name,
+    licenseUrl: model.license_url,
+    usageNotice: model.usage_notice,
     predict: model.capabilities.predict,
     capture: model.capabilities.feature_capture.mode !== 'none',
     real: true,
@@ -940,6 +954,7 @@ export default function Home() {
   const selectedOperator = nodes.find((node) => node.id === selectedNode) ?? visualizations.find((node) => node.id === selectedNode) ?? nodes[0];
   const selectedVisualization = visualizations.find((node) => node.id === selectedNode);
   const pipelineLinearNodes = useMemo(() => pipelineLinearItems(nodes, visualizations), [nodes, visualizations]);
+  const finalPipelineSource = useMemo(() => finalPipelineVisualizationId(nodes, visualizations), [nodes, visualizations]);
   const pipelineGaps = useMemo(() => pipelineInsertionGaps(nodes, visualizations), [nodes, visualizations]);
   const serializedPipelineNodes = useMemo(() => serializePipelineNodes(nodes, visualizations), [nodes, visualizations]);
   const currentPipelineSignature = useMemo(() => pipelineSignature(nodes, visualizations), [nodes, visualizations]);
@@ -953,6 +968,11 @@ export default function Home() {
     layerState: visualizationLayerState,
   }), [nodes, pipelineEnabled, pipelineScope, singlePipelineSource, visualizationDisplayMode, visualizationLayerState, visualizations]);
   const pipelineRequestNodes = useMemo(() => serializedPipelineNodes.map((node) => ({ id: node.id, kind: node.kind, enabled: node.enabled, parameters: node.parameters })), [serializedPipelineNodes]);
+  const currentPipelineModelRuntimeKey = useMemo(() => pipelineModelFeatureRuntimeKey(
+    pipelineRequestNodes,
+    backend.runtime.data,
+    backend.models.data.status_by_model,
+  ), [backend.models.data.status_by_model, backend.runtime.data, pipelineRequestNodes]);
   const hasPipelineValidationDimensions = Boolean(currentFile?.width && currentFile.width > 0 && currentFile?.height && currentFile.height > 0);
   const pipelineValidationWidth = hasPipelineValidationDimensions ? currentFile!.width : undefined;
   const pipelineValidationHeight = hasPipelineValidationDimensions ? currentFile!.height : undefined;
@@ -963,8 +983,8 @@ export default function Home() {
     ?? backend.datasets.data.datasets.find((item) => item.dataset_id === dataset.id)?.index_revision
     ?? 0;
   const currentPipelineRegistryHash = validatedPipelineKey === currentPipelineValidationKey ? pipelineValidationState.data?.registry_hash ?? pipelineCatalogRegistryHash : pipelineCatalogRegistryHash;
-  const currentPipelineExecutionSignature = `${currentPipelineSignature}:index-${currentDatasetIndexRevision}:registry-${currentPipelineRegistryHash}`;
-  const currentPipelinePrecomputeKey = dataset.id ? pipelinePrecomputeKey(dataset.id, `${currentPipelineExecutionSignature}:format-${PIPELINE_PREVIEW_FORMAT}`) : null;
+  const currentPipelineExecutionSignature = `${currentPipelineSignature}:index-${currentDatasetIndexRevision}:registry-${currentPipelineRegistryHash}:format-${PIPELINE_PREVIEW_FORMAT}`;
+  const currentPipelinePrecomputeKey = dataset.id ? pipelinePrecomputeKey(dataset.id, currentPipelineExecutionSignature) : null;
   const pipelineValidationReady = validatedPipelineKey === currentPipelineValidationKey && pipelineValidationState.phase === 'ready' && Boolean(pipelineValidationState.data?.valid);
   const pipelineValidationLabel = backend.mode !== 'online' ? '服务离线'
     : !pipelineEnabled ? '流程关闭'
@@ -1048,6 +1068,10 @@ export default function Home() {
     ? `后台任务，${activeTaskCount} 项运行中，最新进度 ${latestTaskDownloadView?.percent === null ? '未知' : `${latestTaskPercent}%`}`
     : attentionTaskCount > 0 ? `后台任务，${attentionTaskCount} 项需要处理`
       : taskIconComplete ? `后台任务，最近任务已完成` : '后台任务';
+  const taskPopoverSummary = backend.mode !== 'online' ? '离线 · 保留最后状态'
+    : activeTaskCount > 0 ? `${activeTaskCount} 个进行中`
+      : attentionTaskCount > 0 ? `${attentionTaskCount} 个需要处理`
+        : taskStreamJobs.length > 0 ? `${taskStreamJobs.length} 个最近任务` : '暂无任务';
   const reusablePipelinePrecomputeRecord = currentPipelinePrecomputeKey ? backendJobs.find((job) => job.kind === 'pipeline'
     && job.dataset_id === dataset.id
     && job.request.priority === 'background'
@@ -1265,12 +1289,12 @@ export default function Home() {
     if (completedPipelineSignature === currentPipelineExecutionSignature && backend.pipeline.data?.dataset_id === dataset.id && backend.pipeline.data.asset_id === currentFile.id) return;
     const cacheKey = pipelinePreviewCacheKey(dataset.id, currentFile.id, currentPipelineExecutionSignature);
     if (takeCachedPipelinePreview(pipelinePreviewCacheRef.current, cacheKey)) return;
-    void previewPipeline({ dataset_id: dataset.id, asset_id: currentFile.id, priority: 'interactive', nodes: pipelineRequestNodes }).then((result) => {
+    void previewPipeline({ dataset_id: dataset.id, asset_id: currentFile.id, priority: 'interactive', output_format: PIPELINE_PREVIEW_FORMAT, nodes: pipelineRequestNodes }).then((result) => {
       cachePipelinePreview(result, currentPipelineExecutionSignature);
       mergePipelineTimings(result);
       setCompletedPipelineSignature(currentPipelineExecutionSignature);
     }).catch(() => undefined);
-  }, [backend.mode, backend.pipeline.data?.asset_id, backend.pipeline.data?.dataset_id, cachePipelinePreview, completedPipelineSignature, currentFile?.id, currentFile?.imagePath, currentPipelineExecutionSignature, currentPipelineValidationKey, dataset.id, datasetWorkspaceReady, mergePipelineTimings, pipelineEnabled, pipelineHasTile, pipelineRequestNodes, pipelineScope, pipelineValidationState.data?.valid, previewPipeline, restorePipelinePreview, validatedPipelineKey]);
+  }, [backend.mode, backend.pipeline.data?.asset_id, backend.pipeline.data?.dataset_id, cachePipelinePreview, completedPipelineSignature, currentFile?.id, currentFile?.imagePath, currentPipelineExecutionSignature, currentPipelineModelRuntimeKey, currentPipelineValidationKey, dataset.id, datasetWorkspaceReady, mergePipelineTimings, pipelineEnabled, pipelineHasTile, pipelineRequestNodes, pipelineScope, pipelineValidationState.data?.valid, previewPipeline, restorePipelinePreview, validatedPipelineKey]);
 
   useEffect(() => {
     if (!datasetWorkspaceReady || backend.mode !== 'online' || pipelineScope !== 'current' || !dataset.id || !currentFile?.id || completedPipelineSignature !== currentPipelineExecutionSignature || backend.pipeline.data?.asset_id !== currentFile.id || backend.pipeline.data.dataset_id !== dataset.id) return;
@@ -1282,7 +1306,7 @@ export default function Home() {
         const key = pipelinePreviewCacheKey(dataset.id!, assetId, currentPipelineExecutionSignature);
         if (pipelinePreviewCacheRef.current.has(key)) continue;
         try {
-          const result = await prefetchPipelinePreview({ dataset_id: dataset.id!, asset_id: assetId, priority: 'background', nodes: pipelineRequestNodes });
+          const result = await prefetchPipelinePreview({ dataset_id: dataset.id!, asset_id: assetId, priority: 'background', output_format: PIPELINE_PREVIEW_FORMAT, nodes: pipelineRequestNodes });
           if (stopped || generation !== pipelinePrefetchGenerationRef.current) return;
           cachePipelinePreview(result, currentPipelineExecutionSignature);
           mergePipelineTimings(result);
@@ -1463,8 +1487,8 @@ export default function Home() {
       setSelectedNode('source');
       setPipelineEnabled(true);
       setPipelineScope('current');
-      setVisualizationDisplayMode('split');
-      setSinglePipelineSource('source');
+      setVisualizationDisplayMode('source');
+      setSinglePipelineSource(finalPipelineVisualizationId(initialNodes, initialVisualizations));
       setVisualizationLayerState({});
       nextNodeId.current = 2;
       nextVisualizationId.current = 2;
@@ -1682,6 +1706,10 @@ export default function Home() {
   };
 
   const changePipelineEnabled = (enabled: boolean) => {
+    if (enabled) {
+      setSinglePipelineSource(finalPipelineSource);
+      setVisualizationDisplayMode('source');
+    }
     setPipelineEnabled(enabled);
   };
 
@@ -1693,8 +1721,6 @@ export default function Home() {
     const requestId = ++annotationLoadRequestId.current;
     if (annotationAutoSaveTimerRef.current) window.clearTimeout(annotationAutoSaveTimerRef.current);
     annotationAutoSaveTimerRef.current = null;
-    annotationAutoSaveRef.current = DEFAULT_ANNOTATION_AUTO_SAVE;
-    setAnnotationAutoSave(DEFAULT_ANNOTATION_AUTO_SAVE);
     cancelAnnotationDrafting();
     setPendingShapeLabelEdit(null);
     setPendingCategoryLabelEdit(null);
@@ -1827,6 +1853,9 @@ export default function Home() {
       if (state.defaultInferenceProvider === 'CPUExecutionProvider') {
         setInferenceProvider(state.defaultInferenceProvider);
       }
+      const restoredAutoSave = normalizeAnnotationAutoSavePreference(state.annotationAutoSave);
+      annotationAutoSaveRef.current = restoredAutoSave;
+      setAnnotationAutoSave(restoredAutoSave);
       setUseMacShortcutSymbols(/Mac|iPhone|iPad/.test(navigator.platform));
     } catch { /* ignore invalid global settings */ }
     finally { globalSettingsHydratedRef.current = true; }
@@ -1838,8 +1867,9 @@ export default function Home() {
       schemaVersion: 1,
       shortcutOverrides,
       defaultInferenceProvider: inferenceProvider,
+      annotationAutoSave,
     }));
-  }, [inferenceProvider, shortcutOverrides]);
+  }, [annotationAutoSave, inferenceProvider, shortcutOverrides]);
 
   useEffect(() => {
     const remote = backend.applicationSettings.data;
@@ -2347,6 +2377,12 @@ export default function Home() {
 
   const openRecentProject = async (registered: RegisteredDataset) => {
     if (backend.mode !== 'online' || openingRecentDatasetId || directoryPickerPending) return;
+    if (registered.source_available === false) {
+      setUnavailableProjectRemoval(registered);
+      setUnavailableProjectRemovalError('');
+      setWelcomeError('');
+      return;
+    }
     const operationId = ++datasetOperationRef.current;
     setOpeningRecentDatasetId(registered.dataset_id);
     setWelcomeError('');
@@ -2365,9 +2401,41 @@ export default function Home() {
       notify(`已打开 ${registered.name}`);
     } catch (error) {
       if (operationId !== datasetOperationRef.current) return;
+      if (error instanceof LocalApiError && error.code === 'invalid_path' && ['root_missing', 'image_root_missing'].includes(String(error.details?.reason))) {
+        setUnavailableProjectRemoval({
+          ...registered,
+          source_available: false,
+          source_error: error.details?.reason === 'image_root_missing' ? 'image_root_missing' : 'root_missing',
+        });
+        setUnavailableProjectRemovalError('');
+        void refreshBackendDatasets();
+        return;
+      }
       setWelcomeError(error instanceof Error ? error.message : '最近项目打开失败');
     } finally {
       if (operationId === datasetOperationRef.current) setOpeningRecentDatasetId(null);
+    }
+  };
+
+  const removeUnavailableProjectRecord = async () => {
+    const project = unavailableProjectRemoval;
+    if (!project || unavailableProjectRemovalPending) return;
+    setUnavailableProjectRemovalPending(true);
+    setUnavailableProjectRemovalError('');
+    try {
+      await backend.removeRegisteredDataset(project.dataset_id);
+      setRecentProjectIds((current) => {
+        const next = current.filter((datasetId) => datasetId !== project.dataset_id);
+        window.localStorage.setItem('labelone-recent-projects-v1', JSON.stringify(next));
+        return next;
+      });
+      setUnavailableProjectRemoval(null);
+      setWelcomeError('');
+      notify(`已移除 ${project.name} 的本地项目记录`);
+    } catch (error) {
+      setUnavailableProjectRemovalError(error instanceof Error ? error.message : '项目记录移除失败');
+    } finally {
+      setUnavailableProjectRemovalPending(false);
     }
   };
 
@@ -3534,7 +3602,7 @@ export default function Home() {
     if (current && documentIsDirty(current.document)) {
       scheduleAnnotationPersistence(enabled ? '自动保存已开启，等待 700ms' : '自动保存已关闭，正在保护本机草稿');
     }
-    notify(enabled ? '自动保存标注已开启' : '自动保存标注已关闭；切图时将询问是否保存');
+    notify(enabled ? '全局自动保存已开启，将对所有图片生效' : '全局自动保存已关闭；切图时将询问是否保存');
   };
 
   const pendingNavigationSourceIsCurrent = (pending: PendingAnnotationNavigation) => {
@@ -4057,6 +4125,10 @@ export default function Home() {
     }
   };
 
+  const controlTaskGroup = async (jobIds: string[], action: 'pause' | 'resume' | 'cancel') => {
+    await Promise.all(jobIds.map((jobId) => controlTask(jobId, action)));
+  };
+
   const promotePredictionToManual = (predictionIndex: number) => {
     const prediction = currentDetectionPredictions[predictionIndex];
     const envelope = annotationDraftRef.current;
@@ -4084,16 +4156,62 @@ export default function Home() {
     notify(`已将 AI 预测「${promoted.label}」转为人工框，可继续编辑`);
   };
 
+  const adoptCurrentSamMask = () => {
+    const envelope = annotationDraftRef.current;
+    if (!isSamModel || !currentSegmentationContours.length || !currentInferenceResult || !envelope) {
+      notify('当前 SAM Mask 或人工标注草稿不可用');
+      return;
+    }
+    const existingKeys = new Set((envelope.document.shapes ?? []).flatMap((shape) => (
+      shape.source === 'ai_promoted'
+      && shape.model_id === selectedModel.id
+      && typeof shape.prediction_key === 'string'
+        ? [shape.prediction_key]
+        : []
+    )));
+    const promoted = currentSegmentationContours.flatMap((prediction, predictionIndex) => {
+      const predictionKey = inferencePredictionKey(selectedModel.id, currentInferenceResult.image_path, prediction);
+      if (existingKeys.has(predictionKey)) return [];
+      const shape: AnnotationShape = {
+        ...structuredClone(prediction),
+        label: prediction.label.trim() || 'object',
+        source: 'ai_promoted',
+        model_id: selectedModel.id,
+        prediction_index: predictionIndex,
+        prediction_key: predictionKey,
+        ai_original_score: prediction.score,
+        prompt_type: 'sam',
+      };
+      delete shape.score;
+      return [shape];
+    });
+    if (!promoted.length) {
+      notify('当前 SAM Mask 已在人工标注中');
+      return;
+    }
+    const firstIndex = envelope.document.shapes?.length ?? 0;
+    const committed = commitAnnotationDocument({
+      ...envelope.document,
+      shapes: [...(envelope.document.shapes ?? []), ...promoted],
+    });
+    if (!committed) return;
+    setSelectedPredictionIndex(null);
+    setSelectedShapeIndex(firstIndex);
+    setObjectSourceTab('manual');
+    notify(`已采用当前 SAM Mask 为 ${promoted.length} 个人工多边形，可撤销`);
+  };
+
   const persistDismissedTasks = (next: Record<string, string>) => {
     setDismissedTaskVersions(next);
     try { window.localStorage.setItem(DISMISSED_BACKGROUND_TASKS_KEY, JSON.stringify(next)); } catch { /* keep the in-memory view */ }
   };
 
-  const dismissBackgroundTasks = (jobs: JobRecord[]) => {
+  const dismissBackgroundTasks = (jobs: Array<JobRecord & { logical_job_ids?: string[] }>) => {
     if (!jobs.length) return;
-    const next = { ...dismissedTaskVersions, ...Object.fromEntries(jobs.map((job) => [job.job_id, job.updated_at])) };
+    const records = jobs.flatMap((job) => (job.logical_job_ids ?? [job.job_id]).map((jobId) => backendJobs.find((candidate) => candidate.job_id === jobId) ?? job));
+    const next = { ...dismissedTaskVersions, ...Object.fromEntries(records.map((job) => [job.job_id, job.updated_at])) };
     persistDismissedTasks(next);
-    if (selectedJobId && jobs.some((job) => job.job_id === selectedJobId)) setSelectedJobId(null);
+    if (selectedJobId && records.some((job) => job.job_id === selectedJobId)) setSelectedJobId(null);
   };
 
   const clearCompletedBackgroundTasks = () => {
@@ -4107,13 +4225,18 @@ export default function Home() {
     notify('已忽略该任务提醒；任务更新后会再次出现');
   };
 
-  const retryBackgroundTask = (job: JobRecord) => {
-    if (dismissedTaskVersions[job.job_id]) {
+  const retryBackgroundTask = (job: JobRecord & { logical_job_ids?: string[] }) => {
+    const jobIds = job.logical_job_ids ?? [job.job_id];
+    if (jobIds.some((jobId) => dismissedTaskVersions[jobId])) {
       const next = { ...dismissedTaskVersions };
-      delete next[job.job_id];
+      for (const jobId of jobIds) delete next[jobId];
       persistDismissedTasks(next);
     }
-    void controlTask(job.job_id, 'resume');
+    const retryableIds = jobIds.filter((jobId) => {
+      const state = backendJobs.find((candidate) => candidate.job_id === jobId)?.state;
+      return Boolean(state && (BACKGROUND_TASK_ATTENTION_STATES.has(state) || state === 'paused'));
+    });
+    void controlTaskGroup(retryableIds.length ? retryableIds : [job.job_id], 'resume');
   };
 
   const restoreHiddenBackgroundTasks = () => {
@@ -4341,7 +4464,8 @@ export default function Home() {
   };
 
   const downloadSelectedModel = async () => {
-    if (backend.mode !== 'online' || !selectedModel.id || modelDownloadActionPending) return;
+    if (backend.mode !== 'online' || !selectedModel.id || modelDownloadActionPending || modelDownloadActionPendingRef.current) return;
+    modelDownloadActionPendingRef.current = true;
     setModelDownloadActionPending(true);
     autoLoadAfterDownloadRef.current = selectedModel.id;
     setModelLoadError('');
@@ -4349,30 +4473,18 @@ export default function Home() {
       const weights = await refreshModelWeights(selectedModel.id);
       const missing = weights?.filter((weight) => !weight.downloaded) ?? [];
       if (!missing.length) throw new Error('当前模型没有可下载的缺失权重');
-      const jobs = [];
-      for (const weight of missing) {
-        const key = `${selectedModel.id}:${weight.url_index}`;
-        weightDownloadPendingRef.current.add(key);
-        const job = await backend.downloadModelWeight(selectedModel.id, weight.url_index);
-        jobs.push(job);
-        weightDownloadPendingRef.current.delete(key);
-      }
-      const first = jobs[0];
-      if (first) {
-        setSelectedJobId(first.job_id);
-        backend.watchJobEvents(first.job_id);
-      }
+      const job = await backend.downloadModelWeights(selectedModel.id, missing.map((weight) => weight.url_index));
+      setSelectedJobId(job.job_id);
+      backend.watchJobEvents(job.job_id);
       void backend.refreshJobs();
-      notify(`已创建 ${jobs.length} 个权重下载任务，可在右上角查看进度`);
+      notify(`已创建 1 个权重下载任务 · ${missing.length} 个文件，可在右上角查看进度`);
     } catch (error) {
       autoLoadAfterDownloadRef.current = null;
       const message = error instanceof Error ? error.message : '模型下载失败';
       setModelLoadError(message);
       notify(message);
     } finally {
-      for (const key of [...weightDownloadPendingRef.current]) {
-        if (key.startsWith(`${selectedModel.id}:`)) weightDownloadPendingRef.current.delete(key);
-      }
+      modelDownloadActionPendingRef.current = false;
       setModelDownloadActionPending(false);
     }
   };
@@ -4381,7 +4493,8 @@ export default function Home() {
   const selectedModelDownloadActive = selectedModelDownloadJobs.length > 0;
   const selectedModelDownloadJobIds = new Set(selectedModelDownloadJobs.map((job) => job.job_id));
   const selectedModelDownloadProgressItems = Object.values(backend.jobItemProgress).filter((item) => selectedModelDownloadJobIds.has(item.job_id));
-  const selectedModelDownloadProgress = selectedModelDownloadActive && selectedModelDownloadProgressItems.length >= selectedModelDownloadJobs.length && selectedModelDownloadProgressItems.every((item) => item.total_bytes !== null && item.total_bytes > 0)
+  const selectedModelDownloadFileCount = selectedModelDownloadJobs.reduce((total, job) => total + job.total, 0);
+  const selectedModelDownloadProgress = selectedModelDownloadActive && selectedModelDownloadProgressItems.length >= selectedModelDownloadFileCount && selectedModelDownloadProgressItems.every((item) => item.total_bytes !== null && item.total_bytes > 0)
     ? Math.max(0, Math.min(100, Math.round(selectedModelDownloadProgressItems.reduce((sum, item) => sum + item.received_bytes, 0) / selectedModelDownloadProgressItems.reduce((sum, item) => sum + (item.total_bytes ?? 0), 0) * 100)))
     : null;
 
@@ -4493,8 +4606,11 @@ export default function Home() {
         });
         if (!transforms.length) throw new Error('Agent 草案没有可用的已注册图像算子');
         const nextNodes = [{ ...initialNodes[0] }, ...transforms];
+        const nextVisualizations = normalizeVisualizationTaps(nextNodes, visualizations);
         setNodes(nextNodes);
-        setVisualizations((old) => normalizeVisualizationTaps(nextNodes, old));
+        setVisualizations(nextVisualizations);
+        setSinglePipelineSource(finalPipelineVisualizationId(nextNodes, nextVisualizations));
+        setVisualizationDisplayMode('source');
         setPipelineEnabled(true);
         setSelectedNode(transforms[0].id);
         setRightTab('pipeline');
@@ -4732,6 +4848,9 @@ export default function Home() {
   const currentDetectionPredictions = currentAnnotationsAreSegmentation ? [] : currentPredictions;
   const currentSegmentationContours = currentAnnotationsAreSegmentation ? currentPredictions : [];
   const promotedPredictionKeys = new Set(draftShapes.flatMap((shape) => shape.source === 'ai_promoted' && shape.model_id === selectedModel.id && typeof shape.prediction_key === 'string' ? [shape.prediction_key] : []));
+  const adoptableSamContourCount = isSamModel && currentInferenceResult
+    ? currentSegmentationContours.filter((prediction) => !promotedPredictionKeys.has(inferencePredictionKey(selectedModel.id, currentInferenceResult.image_path, prediction))).length
+    : 0;
   const availablePredictionEntries = currentDetectionPredictions.flatMap((prediction, index) => {
     const key = inferencePredictionKey(selectedModel.id, currentInferenceResult?.image_path ?? '', prediction);
     return promotedPredictionKeys.has(key) ? [] : [{ prediction, index, key, label: prediction.label.trim() || '未命名预测' }];
@@ -4765,7 +4884,7 @@ export default function Home() {
   const selectedFeaturePreviewUrl = selectedFeatureArtifact?.preview_available
     ? backend.artifactPreviewUrl(selectedFeatureArtifact.id)
     : null;
-  const currentRasters = currentInferenceResult?.rasters ?? [];
+  const currentRasters = useMemo(() => currentInferenceResult?.rasters ?? [], [currentInferenceResult]);
   const showInferenceResult = backend.mode === 'online' && inferenceMatchesCurrent && (currentAnnotationsAreSegmentation || currentClassifications.length > 0 || currentArtifacts.length > 0 || currentRasters.length > 0);
   const pipelineBelongsToCurrentAsset = Boolean(
     backend.pipeline.data
@@ -4832,35 +4951,6 @@ export default function Home() {
   const selectedSinglePipelineItem = singlePipelineSource === 'source'
     ? null
     : pipelineDisplayItems.find((item) => item.visualization_id === singlePipelineSource) ?? null;
-  const effectivePipelineImageUrl = pipelineDisplayItems[0]?.displayUrl ?? null;
-  const selectedOperatorInputTransform = selectedOperator ? resolvePipelineCoordinateTransform(
-    pipelineRequestNodes,
-    currentFile?.width ?? 0,
-    currentFile?.height ?? 0,
-    selectedOperator.id,
-  ) : null;
-  const activePipelineCoordinateTransform = resolvePipelineCoordinateTransform(
-    pipelineRequestNodes,
-    currentFile?.width ?? 0,
-    currentFile?.height ?? 0,
-    primaryPipelineVisualization?.visualization_id,
-  );
-  const livePipelineAnnotationShapes = activePipelineCoordinateTransform?.topologySafe
-    ? draftShapes.map((shape) => transformCanvasShape(shape, activePipelineCoordinateTransform))
-    : primaryPipelineVisualization?.annotation_document.shapes;
-  const canvasPresentation = resolveCanvasPresentation({
-    sourceImageUrl: realImageUrl,
-    pipelineImageUrl: visualizationDisplayMode === 'source' ? null : effectivePipelineImageUrl,
-    pipelineEnabled,
-    pipelineScope,
-    annotationShapes: draftShapes,
-    pipelineAnnotationShapes: livePipelineAnnotationShapes,
-    sourceWidth: currentFile?.width,
-    sourceHeight: currentFile?.height,
-    pipelineWidth: primaryPipelineVisualization?.width,
-    pipelineHeight: primaryPipelineVisualization?.height,
-  });
-  const canvasEditCoordinateTransform: CanvasCoordinateTransform | null = canvasPresentation.showingPipelineImage ? activePipelineCoordinateTransform : null;
   const pipelineDisplaySlotsReady = pipelineDisplaySlots.length > 1 && pipelineDisplaySlots.every((slot) => slot.result !== null);
   const pipelineOverlayCompatibility = pipelineDisplaySlotsReady
     ? visualizationOverlayCompatibility(pipelineDisplayItems)
@@ -4871,12 +4961,62 @@ export default function Home() {
     pipelineDisplaySlotsReady,
     pipelineOverlayCompatibility.allowed,
   );
+  const canvasPipelineItem = effectiveVisualizationDisplayMode === 'source'
+    ? selectedSinglePipelineItem
+    : pipelineDisplayItems[0] ?? null;
+  const effectivePipelineImageUrl = canvasPipelineItem?.displayUrl ?? null;
+  const selectedOperatorInputTransform = selectedOperator ? resolvePipelineCoordinateTransform(
+    pipelineRequestNodes,
+    currentFile?.width ?? 0,
+    currentFile?.height ?? 0,
+    selectedOperator.id,
+  ) : null;
+  const activePipelineCoordinateTransform = canvasPipelineItem
+    ? canvasCoordinateTransformFromPipelineMapping(pipelineCoordinateMappingForItem(canvasPipelineItem))
+    : null;
+  const standaloneRasters = useMemo(
+    () => currentRasters.filter((raster) => inferenceRasterDisplayMode(raster, currentFile?.width, currentFile?.height) === 'standalone'),
+    [currentFile?.height, currentFile?.width, currentRasters],
+  );
+  const activeStandaloneRaster = standaloneRasters.find((raster) => raster.id === selectedStandaloneRasterId) ?? null;
+  const activeStandaloneRasterUrl = activeStandaloneRaster ? backend.artifactContentUrl(activeStandaloneRaster.id) : null;
+  const activeStandaloneScale = activeStandaloneRaster
+    ? inferenceRasterCanvasScale(activeStandaloneRaster, currentFile?.width, currentFile?.height)
+    : null;
+  const activeStandaloneCoordinateTransform: CanvasCoordinateTransform | null = activeStandaloneRaster && activeStandaloneScale
+    ? { a: activeStandaloneScale, b: 0, c: 0, d: activeStandaloneScale, e: 0, f: 0, width: activeStandaloneRaster.width, height: activeStandaloneRaster.height, topologySafe: true }
+    : null;
+  const activeCanvasCoordinateTransform = activeStandaloneCoordinateTransform ?? activePipelineCoordinateTransform;
+  const liveDerivedAnnotationShapes = activeCanvasCoordinateTransform
+    ? draftShapes.map((shape) => transformCanvasShape(shape, activeCanvasCoordinateTransform))
+    : canvasPipelineItem?.result?.annotation_document.shapes;
+  const canvasPresentation = resolveCanvasPresentation({
+    sourceImageUrl: realImageUrl,
+    pipelineImageUrl: activeStandaloneRasterUrl ?? effectivePipelineImageUrl,
+    pipelineEnabled: Boolean(activeStandaloneRaster) || pipelineEnabled,
+    pipelineScope,
+    annotationShapes: draftShapes,
+    pipelineAnnotationShapes: liveDerivedAnnotationShapes,
+    sourceWidth: currentFile?.width,
+    sourceHeight: currentFile?.height,
+    pipelineWidth: activeStandaloneRaster?.width ?? canvasPipelineItem?.width,
+    pipelineHeight: activeStandaloneRaster?.height ?? canvasPipelineItem?.height,
+  });
+  const canvasEditCoordinateTransform: CanvasCoordinateTransform | null = canvasPresentation.showingPipelineImage ? activeCanvasCoordinateTransform : null;
+  const canvasAnnotationEditable = !canvasPresentation.showingPipelineImage || Boolean(canvasEditCoordinateTransform);
+  const showingInferenceRaster = Boolean(activeStandaloneRaster && canvasPresentation.showingPipelineImage);
   const showPipelineViewControls = pipelineEnabled && Boolean(currentFile?.id) && pipelineDisplaySlots.length > 0;
-  const showingMultiplePipelineViews = showPipelineViewControls && effectiveVisualizationDisplayMode !== 'source';
-  const showingSinglePipelineView = showPipelineViewControls && effectiveVisualizationDisplayMode === 'source' && singlePipelineSource !== 'source';
-  const showingPipelinePaneViews = showingMultiplePipelineViews || showingSinglePipelineView;
-  const pipelineCanvasItems = showingSinglePipelineView && selectedSinglePipelineItem ? [selectedSinglePipelineItem] : pipelineDisplayItems;
+  const pipelineHasDisplayablePane = hasDisplayablePipelinePane(pipelineDisplayItems);
+  const showingMultiplePipelineViews = showPipelineViewControls && pipelineHasDisplayablePane && effectiveVisualizationDisplayMode !== 'source';
+  const showingPipelinePaneViews = showingMultiplePipelineViews;
+  const pipelineCanvasItems = pipelineDisplayItems;
   const showingPipelineImage = canvasPresentation.showingPipelineImage || showingPipelinePaneViews;
+  useEffect(() => {
+    if (modelIsLoaded && !showingPipelineImage) return;
+    samBoxDragRef.current = null;
+    setSamBoxPreview(null);
+    setSamPromptMode(false);
+  }, [modelIsLoaded, showingPipelineImage]);
   const pipelineSharedPaneTransform = pipelinePaneTransform(view, stageRef.current?.clientWidth ?? 840, stageRef.current?.clientHeight ?? 592);
   const pipelineVisualizationResultKey = pipelineDisplaySlots.map((item) => item.visualization_id).join(':');
   useEffect(() => {
@@ -4892,13 +5032,17 @@ export default function Home() {
     if (effectiveVisualizationDisplayMode !== visualizationDisplayMode) setVisualizationDisplayMode(effectiveVisualizationDisplayMode);
   }, [effectiveVisualizationDisplayMode, visualizationDisplayMode]);
   useEffect(() => {
-    if (singlePipelineSource !== 'source' && !pipelineDisplaySlots.some((slot) => slot.visualization_id === singlePipelineSource)) setSinglePipelineSource('source');
-  }, [pipelineDisplaySlots, singlePipelineSource]);
+    if (singlePipelineSource !== 'source' && !pipelineDisplaySlots.some((slot) => slot.visualization_id === singlePipelineSource)) setSinglePipelineSource(finalPipelineSource);
+  }, [finalPipelineSource, pipelineDisplaySlots, singlePipelineSource]);
+  useEffect(() => {
+    if (selectedStandaloneRasterId && !standaloneRasters.some((raster) => raster.id === selectedStandaloneRasterId)) setSelectedStandaloneRasterId(null);
+  }, [selectedStandaloneRasterId, setSelectedStandaloneRasterId, standaloneRasters]);
   const pipelinePreviewDirty = pipelineBelongsToCurrentAsset && !pipelineMatchesCurrent;
-  const pipelineImageLoadFailed = Boolean(pipelineImageUrl && pipelineImageRetryExhausted(pipelineImageAttempts[pipelineImageUrl] ?? 0));
+  const activePipelineArtifactUrl = canvasPipelineItem?.url ?? pipelineImageUrl;
+  const pipelineImageLoadFailed = Boolean(activePipelineArtifactUrl && pipelineImageRetryExhausted(pipelineImageAttempts[activePipelineArtifactUrl] ?? 0));
   const sourceCompatibleRasters = currentRasters.filter((raster) => inferenceRasterMatchesSource(raster, currentFile?.width, currentFile?.height));
   const displayableRasters = showingPipelineImage ? [] : sourceCompatibleRasters;
-  const incompatibleRasterCount = currentRasters.length - sourceCompatibleRasters.length;
+  const incompatibleRasterCount = currentRasters.length - sourceCompatibleRasters.length - standaloneRasters.length;
   const pixelResultDisplayBlockedReason = showingPipelineImage
     ? '处理流底图开启时不叠加推理像素结果'
     : currentSegmentationContours.length > 0
@@ -5128,7 +5272,7 @@ export default function Home() {
           : '已保存';
   const saveModeTitle = annotationSaving
     ? annotationPersistenceText
-    : `${annotationPersistenceText} · 当前图自动保存${annotationAutoSave ? '已开启；切换图片后关闭' : '已关闭；点击开启'}`;
+    : `${annotationPersistenceText} · 全局自动保存${annotationAutoSave ? '已开启；对所有图片生效' : '已关闭；点击开启'}`;
   const rotationPreviewShape = drawPreview && tool === 'rotation'
     ? createDragShape('rotation', [drawPreview.x1, drawPreview.y1], [drawPreview.x2, drawPreview.y2])
     : null;
@@ -5180,18 +5324,18 @@ export default function Home() {
   const backgroundTaskControl = taskIconVisible ? <section ref={taskActivityRef} className={`background-task-control ${taskStreamVisible ? 'visible' : ''} ${taskStreamOpen ? 'pinned' : ''} ${activeTaskCount ? 'has-active' : ''} ${attentionTaskCount ? 'needs-attention' : ''}`} aria-label="后台任务入口" onMouseEnter={() => setTaskStreamHovered(true)} onMouseLeave={() => setTaskStreamHovered(false)} onFocusCapture={() => setTaskStreamFocused(true)} onBlurCapture={(event) => { const next = event.relatedTarget; if (!(next instanceof Node) || !event.currentTarget.contains(next)) setTaskStreamFocused(false); }}>
     <button ref={taskActivityButtonRef} type="button" className={`top-action-button background-task-button ${taskStreamVisible ? 'active' : ''}`} aria-label={taskButtonLabel} aria-haspopup="dialog" aria-expanded={taskStreamVisible} aria-pressed={taskStreamOpen} aria-controls="background-activity-stream" onClick={() => setTaskStreamOpen((open) => !open)}><BackgroundTasksIcon attention={attentionTaskCount > 0} complete={taskIconComplete} />{activeTaskCount > 0 && <span className={`background-task-progress ${latestTaskDownloadView?.percent === null ? 'indeterminate' : ''}`} aria-hidden="true"><i style={{ width: latestTaskDownloadView?.percent === null ? '42%' : `${latestTaskPercent}%` }} /></span>}{activeTaskCount + attentionTaskCount > 1 || attentionTaskCount > 0 ? <span className={`background-task-badge ${attentionTaskCount > 0 ? 'attention' : ''}`} aria-hidden="true">{activeTaskCount + attentionTaskCount}</span> : null}<span className="task-progress-announcement" aria-live="polite">{taskButtonLabel}</span></button>
     {taskStreamVisible && <div id="background-activity-stream" className="background-activity" role="dialog" aria-label="后台任务">
-      <header className="activity-popover-heading"><div><strong>后台任务</strong><small>{backend.mode !== 'online' ? '离线 · 显示最后快照' : latestBackgroundTask ? `${backgroundTaskTitle(latestBackgroundTask)} · ${backgroundTaskStateLabel(latestBackgroundTask.state)}` : '批处理、推理与模型下载'}</small></div>{latestBackgroundTask && ACTIVE_TASK_STATES.has(latestBackgroundTask.state) && <b>{latestTaskDownloadView?.percent === null ? '…' : `${latestTaskPercent}%`}</b>}{attentionTaskCount > 0 && <em>{attentionTaskCount} 项需处理</em>}</header>
-      {latestBackgroundTask && ACTIVE_TASK_STATES.has(latestBackgroundTask.state) && <div className={`activity-summary-progress ${latestTaskDownloadView?.percent === null ? 'indeterminate' : ''}`} role="progressbar" aria-label={`${backgroundTaskTitle(latestBackgroundTask)}进度`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={latestTaskDownloadView?.percent === null ? undefined : latestTaskPercent}><span style={{ width: latestTaskDownloadView?.percent === null ? '35%' : `${latestTaskPercent}%` }} /></div>}
-      <div className="activity-history-toolbar"><div role="group" aria-label="最近任务时间范围">{BACKGROUND_TASK_HISTORY_HOURS.map((hours) => <button key={hours} type="button" className={taskHistoryHours === hours ? 'active' : ''} aria-pressed={taskHistoryHours === hours} onClick={() => changeTaskHistoryHours(hours)}>{hours === 1 ? '1 小时' : hours === 24 ? '24 小时' : '7 天'}</button>)}</div><div><button type="button" disabled={clearableTaskIds.length === 0} onClick={clearCompletedBackgroundTasks}>清除已完成{clearableTaskIds.length ? ` ${clearableTaskIds.length}` : ''}</button>{Object.keys(dismissedTaskVersions).length > 0 && <button type="button" onClick={restoreHiddenBackgroundTasks}>恢复已隐藏</button>}</div><small>最多显示服务端返回的最近 100 项；清除仅影响本机列表</small></div>
-      <div className="activity-stream" role="region" aria-label="后台活动流"><header><span>{backend.jobEvents.mode === 'realtime' ? '● 实时' : backend.jobEvents.mode === 'connecting' ? '◌ 连接中' : backend.jobEvents.mode === 'offline' ? '○ 离线' : '○ 轮询'}</span><small>最近 {taskStreamJobs.length} 项</small><button onClick={() => void backend.refreshJobs()}>刷新</button></header>{taskStreamJobs.map((job) => {
+      <header className="activity-popover-heading"><div><strong>后台任务</strong><small>{taskPopoverSummary}</small></div>{attentionTaskCount > 0 && <em>{attentionTaskCount} 项需处理</em>}</header>
+      <div className="activity-history-toolbar"><div role="group" aria-label="最近任务时间范围">{BACKGROUND_TASK_HISTORY_HOURS.map((hours) => <button key={hours} type="button" className={taskHistoryHours === hours ? 'active' : ''} aria-pressed={taskHistoryHours === hours} onClick={() => changeTaskHistoryHours(hours)}>{hours === 1 ? '1 小时' : hours === 24 ? '24 小时' : '7 天'}</button>)}</div><div><button type="button" disabled={clearableTaskIds.length === 0} onClick={clearCompletedBackgroundTasks}>清除{clearableTaskIds.length ? ` ${clearableTaskIds.length}` : ''}</button>{Object.keys(dismissedTaskVersions).length > 0 && <button type="button" onClick={restoreHiddenBackgroundTasks}>恢复</button>}</div></div>
+      <div className="activity-stream" role="region" aria-label="后台活动流"><header><span>{backend.jobEvents.mode === 'realtime' ? '● 实时更新' : backend.jobEvents.mode === 'connecting' ? '◌ 连接中' : backend.jobEvents.mode === 'offline' ? '○ 离线' : '○ 定时刷新'}</span><small>{taskStreamJobs.length} 个任务</small><button aria-label="刷新后台任务" title="刷新" onClick={() => void backend.refreshJobs()}>↻</button></header>{taskStreamJobs.map((job) => {
+        const logicalJobIds = job.logical_job_ids;
         const terminal = job.completed + job.failed + job.canceled;
         const liveProgress = Object.values(backend.jobItemProgress).find((progress) => progress.job_id === job.job_id);
         const liveView = liveProgress ? formatDownloadProgress(liveProgress.received_bytes, liveProgress.total_bytes) : null;
         const percent = liveView?.percent ?? backgroundTaskPercent(job);
-        const pending = taskActionPending?.startsWith(job.job_id);
-        const selected = selectedJobId === job.job_id;
-        return <article key={job.job_id} className={`activity-row ${job.state} ${selected ? 'selected' : ''}`}><button type="button" className="activity-row-main" aria-pressed={selected} onClick={() => void inspectJob(job.job_id)}><span className={`task-kind ${job.kind}`}>{job.kind === 'pipeline' ? 'FLOW' : job.kind === 'model_download' ? 'GET' : job.kind === 'category_rename' ? 'REN' : 'AI'}</span><span><strong>{backgroundTaskTitle(job)}</strong><small>{backgroundTaskStateLabel(job.state)} · {job.kind === 'model_download' ? `${job.total} 个文件${liveView ? ` · ${liveView.label}` : ''}` : `${job.total} 张`}</small></span><b>{liveView?.percent === null ? '…' : `${percent}%`}</b></button>{ACTIVE_TASK_STATES.has(job.state) && <div className={`task-progress ${liveView?.percent === null ? 'indeterminate' : ''}`} role="progressbar" aria-label={`${backgroundTaskTitle(job)}进度`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={liveView?.percent === null ? undefined : percent}><span style={{ width: liveView?.percent === null ? '35%' : `${percent}%` }} /></div>}{BACKGROUND_TASK_ATTENTION_STATES.has(job.state) && <div className="activity-attention-actions"><span title={job.error}>{job.error ?? '该任务需要处理'}</span><button type="button" disabled={pending} onClick={() => retryBackgroundTask(job)}>{pending ? '处理中…' : '重试失败项'}</button><button type="button" onClick={() => ignoreBackgroundTask(job)}>忽略提醒</button></div>}{selected && <div className="activity-row-details"><div className="task-counts"><span>成功 {job.completed}</span><span>失败 {job.failed}</span><span>取消 {job.canceled}</span><span>剩余 {Math.max(0, job.total - terminal)}</span></div><footer>{job.kind !== 'model_download' && ['queued','running'].includes(job.state) && <button disabled={pending} onClick={() => void controlTask(job.job_id, 'pause')}>暂停</button>}{job.state === 'paused' && <button disabled={pending} onClick={() => void controlTask(job.job_id, 'resume')}>继续</button>}{!['succeeded','succeeded_with_errors','failed','canceled'].includes(job.state) && <button className="cancel" disabled={pending} onClick={() => void controlTask(job.job_id, 'cancel')}>取消</button>}</footer></div>}</article>;
-      })}{taskStreamJobs.length === 0 && <div className="activity-empty"><strong>当前没有后台任务</strong><small>运行全部图像处理、批量推理或下载模型后，进度会自动出现在这里。</small></div>}{selectedJobId && backend.jobItems.phase === 'ready' && backend.jobItems.data && <section className="task-items"><div className="section-title"><h2>任务项状态</h2><span>{backend.jobItems.data.total} 项</span></div>{backend.jobItems.data.items.slice(0, 8).map((item) => { const progress = backend.jobItemProgress[`${selectedJobId}:${item.asset_id}`]; const progressView = progress ? formatDownloadProgress(progress.received_bytes, progress.total_bytes) : null; return <div key={item.asset_id} className={`task-item ${item.state}`}><span>{item.position + 1}</span><div><strong>{item.asset_id.slice(0, 18)}</strong><small>{item.error ?? progressView?.label ?? `attempt ${item.attempts}`}</small>{progressView && <i><span style={{ width: progressView.percent === null ? '35%' : `${progressView.percent}%` }} /></i>}</div><b>{progressView?.percent === null ? '下载中' : progressView?.percent !== undefined ? `${progressView.percent}%` : item.state}</b></div>; })}</section>}</div>
+        const pending = logicalJobIds.some((jobId) => taskActionPending?.startsWith(jobId));
+        const selected = selectedJobId !== null && logicalJobIds.includes(selectedJobId);
+        return <article key={job.job_id} className={`activity-row ${job.state} ${selected ? 'selected' : ''}`}><button type="button" className="activity-row-main" aria-pressed={selected} onClick={() => void inspectJob(job.job_id)}><span className={`task-kind ${job.kind}`}>{job.kind === 'pipeline' ? 'FLOW' : job.kind === 'model_download' ? 'GET' : job.kind === 'category_rename' ? 'REN' : 'AI'}</span><span><strong>{backgroundTaskTitle(job)}</strong><small>{backgroundTaskStateLabel(job.state)} · {job.kind === 'model_download' ? `${job.total} 个文件${liveView ? ` · ${liveView.label}` : ''}` : `${job.total} 张`}</small></span><b>{liveView?.percent === null ? '…' : `${percent}%`}</b></button>{ACTIVE_TASK_STATES.has(job.state) && <div className={`task-progress ${liveView?.percent === null ? 'indeterminate' : ''}`} role="progressbar" aria-label={`${backgroundTaskTitle(job)}进度`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={liveView?.percent === null ? undefined : percent}><span style={{ width: liveView?.percent === null ? '35%' : `${percent}%` }} /></div>}{BACKGROUND_TASK_ATTENTION_STATES.has(job.state) && <div className="activity-attention-actions"><span title={job.error}>{job.error ?? '该任务需要处理'}</span><button type="button" disabled={pending} onClick={() => retryBackgroundTask(job)}>{pending ? '处理中…' : '重试失败项'}</button><button type="button" onClick={() => ignoreBackgroundTask(job)}>忽略提醒</button></div>}{selected && <div className="activity-row-details"><div className="task-counts"><span>成功 {job.completed}</span><span>失败 {job.failed}</span><span>取消 {job.canceled}</span><span>剩余 {Math.max(0, job.total - terminal)}</span></div><footer>{job.kind !== 'model_download' && ['queued','running'].includes(job.state) && <button disabled={pending} onClick={() => void controlTaskGroup(logicalJobIds, 'pause')}>暂停</button>}{job.state === 'paused' && <button disabled={pending} onClick={() => void controlTaskGroup(logicalJobIds, 'resume')}>继续</button>}{!['succeeded','succeeded_with_errors','failed','canceled'].includes(job.state) && <button className="cancel" disabled={pending} onClick={() => void controlTaskGroup(logicalJobIds, 'cancel')}>取消</button>}</footer></div>}</article>;
+      })}{taskStreamJobs.length === 0 && <div className="activity-empty"><strong>当前没有后台任务</strong><small>处理、推理或模型下载开始后会显示在这里。</small></div>}{selectedJobId && backend.jobItems.phase === 'ready' && backend.jobItems.data && <section className="task-items"><div className="section-title"><h2>{selectedBackgroundTask?.kind === 'model_download' ? '文件进度' : '任务明细'}</h2><span>{backend.jobItems.data.total} 项</span></div>{backend.jobItems.data.items.slice(0, 8).map((item) => { const progress = backend.jobItemProgress[`${selectedJobId}:${item.asset_id}`]; const progressView = progress ? formatDownloadProgress(progress.received_bytes, progress.total_bytes) : null; return <div key={item.asset_id} className={`task-item ${item.state}`}><span>{item.position + 1}</span><div><strong>{item.asset_id.slice(0, 18)}</strong><small>{item.error ?? progressView?.label ?? `attempt ${item.attempts}`}</small>{progressView && <i><span style={{ width: progressView.percent === null ? '35%' : `${progressView.percent}%` }} /></i>}</div><b>{progressView?.percent === null ? '下载中' : progressView?.percent !== undefined ? `${progressView.percent}%` : item.state}</b></div>; })}</section>}</div>
     </div>}
   </section> : null;
 
@@ -5282,7 +5426,9 @@ export default function Home() {
             {pipelineFailureDetail && <button type="button" className="pipeline-canvas-failure" role="alert" onClick={() => openRightTab('pipeline')}><span aria-hidden="true">!</span><div><strong>处理流程失败</strong><small>{pipelineFailureDetail}</small></div><i aria-hidden="true">查看 →</i></button>}
             {pipelinePreviewDirty && <div className="pipeline-stale-notice" role="status">参数已更新 · 保留上一版分屏，正在重新计算</div>}
             {pipelineImageLoadFailed && <div className="pipeline-stale-notice" role="status">处理流图像暂时不可读取 · 已回退原图，画布仍可编辑</div>}
-            <div className={`canvas-hint ${polygonCloseReady ? 'close-ready' : ''}`}>{tool === 'select'
+            <div className={`canvas-hint ${polygonCloseReady ? 'close-ready' : ''}`}>{!canvasAnnotationEditable
+              ? '当前处理结果没有可逆空间映射 · 请切换到空间显示节点或原图编辑标注'
+              : tool === 'select'
               ? '点击选择标注 · 连续点击可切换重叠或相互包含的框 · 拖动移动'
               : tool === 'brush'
               ? !annotationDraft
@@ -5305,7 +5451,7 @@ export default function Home() {
               : '滚轮/双指平移 · 捏合或 ⌘/Ctrl + 滚轮缩放 · 聚焦画布后用 + / − / 0 / 1'}</div>
             {localServiceDown && <div className="service-banner"><span className="spinner" /><div><strong>本地服务连接中断</strong><small>保留最后成功数据；真实扫描与模型操作已暂停。</small></div></div>}
             {!showingPipelinePaneViews && <div ref={canvasCrosshairRef} className="canvas-crosshair" aria-hidden="true"><i /></div>}
-            {showingPipelinePaneViews ? <div className={`pipeline-preview-surface mode-${showingSinglePipelineView ? 'single' : effectiveVisualizationDisplayMode} count-${pipelineCanvasItems.length}`} aria-label={showingSinglePipelineView ? `单画面显示 ${selectedSinglePipelineItem?.label ?? '处理结果'}` : `${pipelineDisplaySlots.length} 个同步处理流显示`}>
+            {showingPipelinePaneViews ? <div className={`pipeline-preview-surface mode-${effectiveVisualizationDisplayMode} count-${pipelineCanvasItems.length}`} aria-label={`${pipelineDisplaySlots.length} 个同步处理流显示`}>
               {effectiveVisualizationDisplayMode !== 'overlay' ? <div className="pipeline-preview-grid">{pipelineCanvasItems.map((item, index) => <figure key={item.visualization_id} className={`pipeline-preview-pane ${item.result && readPipelinePaneMetrics(item.result).pixelGridVisible ? 'source-pixels-visible' : ''}`}><div ref={index === 0 ? imageRef : undefined} className="pipeline-preview-pane-canvas" data-pipeline-preview-pane data-pipeline-visualization-id={item.visualization_id} data-pipeline-width={item.width} data-pipeline-height={item.height} data-pipeline-label={item.label}><div className="pipeline-preview-pane-content" style={{ transform: pipelineSharedPaneTransform }}>{item.displayUrl ? <>{/* eslint-disable-next-line @next/next/no-img-element -- local pipeline artifact bypasses image optimization */}
                     <img className="pipeline-preview-image" src={item.displayUrl} alt={`${item.label} 处理流显示`} crossOrigin="anonymous" draggable={false} onError={() => { if (item.url) handlePipelineImageError(item.url); }} /></> : <div className="image-load-empty" role="status">{item.result ? '该处理流图像暂时不可读取' : '正在计算此显示…'}</div>}</div>{item.result && item.result.overlay_compatible !== false && <PipelinePixelGridCanvas imageWidth={item.width} imageHeight={item.height} view={view} referenceWidth={stageRef.current?.clientWidth ?? 840} referenceHeight={stageRef.current?.clientHeight ?? 592} enabled={showPixel} />}{item.result && item.result.overlay_compatible !== false && renderPipelinePreviewAnnotationLayer(item.result, true)}{item.result && renderPipelineSharedCrosshair(item.result, true)}</div><figcaption className="pipeline-preview-label"><strong>{item.label}</strong><span>{item.result ? `${item.width} × ${item.height}${item.result.overlay_compatible === false ? ' · 非空间特征' : ''}` : '加载中'}</span></figcaption></figure>)}</div> : <div ref={imageRef} className="pipeline-overlay-stack" data-pipeline-preview-pane data-pipeline-visualization-id={topVisiblePipelineItem?.visualization_id} data-pipeline-width={topVisiblePipelineItem?.width} data-pipeline-height={topVisiblePipelineItem?.height} data-pipeline-label={topVisiblePipelineItem?.label}><div className="pipeline-preview-pane-content" style={{ transform: pipelineSharedPaneTransform }}>{pipelineDisplayItems.map((item) => { const layer = visualizationLayerState[item.visualization_id] ?? { visible: true, opacity: 100 }; return <figure key={item.visualization_id} className={layer.visible ? 'visible' : 'hidden'} style={{ opacity: layer.visible ? layer.opacity / 100 : 0 }}>{item.displayUrl ? <>{/* eslint-disable-next-line @next/next/no-img-element -- local pipeline artifact bypasses image optimization */}
                     <img className="pipeline-preview-image" src={item.displayUrl} alt={`${item.label} 叠加层`} crossOrigin="anonymous" draggable={false} onError={() => { if (item.url) handlePipelineImageError(item.url); }} />{item.result && item.result.overlay_compatible !== false && renderPipelinePreviewAnnotationLayer(item.result)}</> : null}</figure>; })}{!pipelineDisplaySlotsReady && <div className="image-load-empty pipeline-overlay-loading" role="status">正在加载当前图的 {pipelineDisplaySlots.length} 个显示结果</div>}{topVisiblePipelineItem && renderPipelineSharedCrosshair(topVisiblePipelineItem)}</div><span className="pipeline-preview-label pipeline-overlay-label">叠加 · {pipelineDisplaySlots.length} 层{pipelineDisplaySlotsReady ? '' : ' · 加载中'}</span></div>}
@@ -5324,7 +5470,7 @@ export default function Home() {
                   />
                 ) : (
                   // eslint-disable-next-line @next/next/no-img-element -- local source must bypass cloud image optimization
-                  <img className="real-image" src={tileMetadataLoading && tilePlaceholderUrl ? tilePlaceholderUrl : displayedImageUrl} alt={currentFile?.name ?? 'Dataset image'} crossOrigin="anonymous" draggable={false} onError={() => { if (showingPipelineImage && pipelineImageUrl) handlePipelineImageError(pipelineImageUrl); }} />
+                  <img className="real-image" src={tileMetadataLoading && tilePlaceholderUrl ? tilePlaceholderUrl : displayedImageUrl} alt={showingInferenceRaster ? `${currentFile?.name ?? 'Dataset image'} HYPIR restored` : currentFile?.name ?? 'Dataset image'} crossOrigin="anonymous" draggable={false} onError={() => { if (showingPipelineImage && !showingInferenceRaster && activePipelineArtifactUrl) handlePipelineImageError(activePipelineArtifactUrl); }} />
                 )}
                 {activeRasterUrl && activeRaster && <>
                   {/* eslint-disable-next-line @next/next/no-img-element -- local raster artifact bypasses cloud image optimization */}
@@ -5332,16 +5478,16 @@ export default function Home() {
                 </>}
               </> : <div className="image-load-empty" role="status">当前图像暂时不可读取</div>}
             </div>}
-            {displayedImageUrl && !showingPipelinePaneViews && <svg className={`real-annotation-layer screen-annotation-layer ${isSamModel && samPromptMode ? 'sam-prompt-active' : ''}`} viewBox={`0 0 ${displayedWidth ?? 1} ${displayedHeight ?? 1}`} preserveAspectRatio="none" style={annotationSvgStyle} onPointerDown={startCanvasPointer} onPointerMove={moveCanvasPointer} onPointerUp={endCanvasPointer} onPointerCancel={cancelCanvasPointer} onDoubleClick={handleCanvasDoubleClick}>
+            {displayedImageUrl && !showingPipelinePaneViews && <svg className={`real-annotation-layer screen-annotation-layer ${canvasAnnotationEditable ? '' : 'annotation-unmapped'} ${isSamModel && samPromptMode ? 'sam-prompt-active' : ''}`} viewBox={`0 0 ${displayedWidth ?? 1} ${displayedHeight ?? 1}`} preserveAspectRatio="none" style={annotationSvgStyle} aria-readonly={!canvasAnnotationEditable} onPointerDown={canvasAnnotationEditable ? startCanvasPointer : undefined} onPointerMove={canvasAnnotationEditable ? moveCanvasPointer : undefined} onPointerUp={canvasAnnotationEditable ? endCanvasPointer : undefined} onPointerCancel={canvasAnnotationEditable ? cancelCanvasPointer : undefined} onDoubleClick={canvasAnnotationEditable ? handleCanvasDoubleClick : undefined}>
                   <defs><pattern id="source-pixel-grid" width="1" height="1" patternUnits="userSpaceOnUse"><path className="source-pixel-grid-line" d="M 1 0 H 0 V 1" /></pattern></defs>
                   {pixelGridBounds && <rect className="source-pixel-grid" x={pixelGridBounds.x} y={pixelGridBounds.y} width={pixelGridBounds.right - pixelGridBounds.x} height={pixelGridBounds.bottom - pixelGridBounds.y} fill="url(#source-pixel-grid)" data-cell-x={sourcePixelWidthOnScreen} data-cell-y={sourcePixelHeightOnScreen} aria-hidden="true" />}
                   {showGT && displayedShapes.map((shape, index) => hiddenShapeIndexes.has(index) ? null : renderRealShape(shape, index, false, 'geometry'))}
                   {!showingPipelineImage && visiblePredictionCanvasEntries.length > 0 && <g className={currentAnnotationsAreSegmentation ? 'inference-segmentation-contours' : 'inference-detections'}>{visiblePredictionCanvasEntries.map(({ prediction: shape, index }) => renderRealShape(shape as AnnotationShape, index, true, 'geometry'))}</g>}
                   {realCanvasLabelEntries.map((entry) => renderRealShape(entry.shape, entry.index, entry.prediction, 'label'))}
                   {showGT && displayedShapes.map((shape, index) => hiddenShapeIndexes.has(index) ? null : renderRealShape(shape, index, false, 'controls'))}
-                  {isSamModel && samBoxes.map((box, index) => <rect key={`sam-box-${index}`} className="sam-prompt-box" x={box[0]} y={box[1]} width={box[2] - box[0]} height={box[3] - box[1]} />)}
-                  {isSamModel && samBoxPreview && <rect className="sam-prompt-box preview" x={samBoxPreview[0]} y={samBoxPreview[1]} width={samBoxPreview[2] - samBoxPreview[0]} height={samBoxPreview[3] - samBoxPreview[1]} />}
-                  {isSamModel && samPoints.map((point, index) => <g key={`sam-point-${index}`} className={`sam-prompt-point ${point.label === 1 ? 'positive' : 'negative'}`}><circle cx={point.x} cy={point.y} r={Math.max(5, (displayedWidth ?? 1000) / 320)} /><text x={point.x} y={point.y} dy="0.34em" textAnchor="middle">{point.label === 1 ? '+' : '−'}</text></g>)}
+                  {isSamModel && !showingPipelineImage && samBoxes.map((box, index) => <rect key={`sam-box-${index}`} className="sam-prompt-box" x={box[0]} y={box[1]} width={box[2] - box[0]} height={box[3] - box[1]} />)}
+                  {isSamModel && !showingPipelineImage && samBoxPreview && <rect className="sam-prompt-box preview" x={samBoxPreview[0]} y={samBoxPreview[1]} width={samBoxPreview[2] - samBoxPreview[0]} height={samBoxPreview[3] - samBoxPreview[1]} />}
+                  {isSamModel && !showingPipelineImage && samPoints.map((point, index) => <g key={`sam-point-${index}`} className={`sam-prompt-point ${point.label === 1 ? 'positive' : 'negative'}`}><circle cx={point.x} cy={point.y} r={Math.max(5, (displayedWidth ?? 1000) / 320)} /><text x={point.x} y={point.y} dy="0.34em" textAnchor="middle">{point.label === 1 ? '+' : '−'}</text></g>)}
                   {polygonPreviewPoints.length > 0 && <polyline className={`draw-preview freeform shape-polygon polygon-rubberband ${polygonCloseReady ? 'ready' : ''}`} points={polygonPreviewPoints.map((point) => point.join(',')).join(' ')} fill="none" />}
                   {brushPreview.length > 0 && <polyline className="draw-preview freeform shape-linestrip freehand-line-preview" points={brushPreview.map((point) => point.join(',')).join(' ')} fill="none" style={freehandGuideStyle} />}
                   {drawPreview && tool === 'line' && <line className="draw-preview shape-line" x1={drawPreview.x1} y1={drawPreview.y1} x2={drawPreview.x2} y2={drawPreview.y2} />}
@@ -5353,10 +5499,11 @@ export default function Home() {
             </svg>}
             {showClassifications && currentClassifications.length > 0 && <section className="canvas-classification-overlay" aria-label="当前图分类 Top-K"><header><span>分类 Top-K</span><strong>{currentClassifications[0].label}</strong></header>{currentClassifications.slice(0, 5).map((item) => <div key={`${item.rank}:${item.label}`}><b>#{item.rank}</b><span>{item.label}</span><strong>{(item.score * 100).toFixed(2)}%</strong></div>)}</section>}
             {activeRaster && activeRasterUrl && <div className="raster-overlay-controls" onPointerDown={(event) => event.stopPropagation()}><div><span>像素结果</span><strong>{activeRaster.role}</strong></div><label><span>透明度</span><input type="range" min="0" max="100" value={rasterOpacity} onChange={(event) => setRasterOpacity(Number(event.target.value))} /><b>{rasterOpacity}%</b></label><button onClick={() => setShowMasks(false)}>关闭</button></div>}
-            <div className="navigator"><div ref={navigatorImageRef} className="navigator-image image" role="application" aria-label="画布导航器，点击或拖动定位" onPointerDown={startNavigatorDrag} onPointerMove={moveNavigatorDrag} onPointerUp={endNavigatorDrag} onPointerCancel={endNavigatorDrag} style={dataset.id && currentFile ? { backgroundImage: `url(${backend.assetUrl(dataset.id, currentFile.id, 'thumbnail', '?max_size=256')})`, backgroundSize: 'contain', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' } : undefined}><span className="viewport-box" style={{ left: navigatorBox.left, top: navigatorBox.top, width: navigatorBox.width, height: navigatorBox.height }} /></div><span>导航器 · 点击或拖动定位</span></div>
+            {showingInferenceRaster && activeStandaloneRaster && <div className="raster-overlay-controls standalone-result" onPointerDown={(event) => event.stopPropagation()}><div><span>独立图像结果</span><strong>{activeStandaloneRaster.role} · {activeStandaloneRaster.width} × {activeStandaloneRaster.height}</strong></div><button onClick={() => setSelectedStandaloneRasterId(null)}>返回原图</button></div>}
+            <div className="navigator"><div ref={navigatorImageRef} className="navigator-image image" role="application" aria-label="画布导航器，点击或拖动定位" onPointerDown={startNavigatorDrag} onPointerMove={moveNavigatorDrag} onPointerUp={endNavigatorDrag} onPointerCancel={endNavigatorDrag} style={dataset.id && currentFile ? { backgroundImage: `url(${activeStandaloneRasterUrl ?? backend.assetUrl(dataset.id, currentFile.id, 'thumbnail', '?max_size=256')})`, backgroundSize: 'contain', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' } : undefined}><span className="viewport-box" style={{ left: navigatorBox.left, top: navigatorBox.top, width: navigatorBox.width, height: navigatorBox.height }} /></div><span>导航器 · 点击或拖动定位</span></div>
           </div>
 
-          <footer className="statusbar"><div className="statusbar-group statusbar-context"><span className="statusbar-source">{displayedWidth ?? 0} × {displayedHeight ?? 0}{showingPipelineImage ? ' · 处理流底图' : activeTileMetadata ? ` · ${activeTileMetadata.backend === 'pyvips' ? 'libvips' : 'Pillow'} 金字塔瓦片` : ' · 真实图像'}</span><span className="healthy">● {backend.pipeline.phase === 'loading' ? '正在执行处理流' : tileMetadataLoading ? '正在准备大图瓦片' : backend.annotation.phase === 'loading' ? '正在加载标注' : annotationDraft ? '标签已载入' : '画布就绪'}</span></div><div className="statusbar-group statusbar-pixels">{pipelineSharedCursor && <span className="pipeline-active-display" title="当前像素读数来源">{pipelineSharedCursor.label}</span>}<PixelReadout cursor={cursor} /></div><div className="statusbar-group statusbar-actions"><label className={`statusbar-grid-toggle ${showPixel ? 'active' : ''} ${pixelGridVisible ? 'visible' : ''}`} title={!showPixel ? '点击开启真实像素网格' : pixelGridVisible ? `真实像素网格正在显示 · 每格对应 1 个源像素 · 当前 ${sourcePixelScreenMinimum.toFixed(1)}px/像素` : pixelGridRevealScale ? `真实像素网格已启用 · 放大到约 ${Math.ceil(pixelGridRevealScale * 100)}% 后显示` : '真实像素网格已启用 · 图像尺寸就绪后显示'}><input type="checkbox" aria-label="显示真实像素网格" checked={showPixel} onChange={(event) => setShowPixel(event.target.checked)} /><span className="statusbar-grid-check" aria-hidden="true" /><span>{pixelGridVisible ? '真实网格已显示' : '真实网格待显示'}</span></label><button type="button" className={`statusbar-autosave ${annotationAutoSave ? 'active' : ''} ${annotationDirty ? 'dirty' : ''} ${annotationPersistence.phase === 'error' ? 'error' : ''}`} role="switch" aria-label="当前图自动保存" aria-describedby="current-image-save-status" aria-checked={annotationAutoSave} disabled={annotationSaving} title={saveModeTitle} onClick={() => changeAnnotationAutoSave(!annotationAutoSave)}><span>当前图自动保存</span><b id="current-image-save-status" aria-live="polite">{saveModeLabel}</b><i aria-hidden="true"><span /></i></button></div></footer>
+          <footer className="statusbar"><div className="statusbar-group statusbar-context"><span className="statusbar-source">{displayedWidth ?? 0} × {displayedHeight ?? 0}{showingInferenceRaster ? ' · HYPIR 独立底图' : showingPipelineImage ? ' · 处理流底图' : activeTileMetadata ? ` · ${activeTileMetadata.backend === 'pyvips' ? 'libvips' : 'Pillow'} 金字塔瓦片` : ' · 真实图像'}</span><span className="healthy">● {backend.pipeline.phase === 'loading' ? '正在执行处理流' : tileMetadataLoading ? '正在准备大图瓦片' : backend.annotation.phase === 'loading' ? '正在加载标注' : annotationDraft ? '标签已载入' : '画布就绪'}</span></div><div className="statusbar-group statusbar-pixels">{pipelineSharedCursor && <span className="pipeline-active-display" title="当前像素读数来源">{pipelineSharedCursor.label}</span>}<PixelReadout cursor={cursor} /></div><div className="statusbar-group statusbar-actions"><label className={`statusbar-grid-toggle ${showPixel ? 'active' : ''} ${pixelGridVisible ? 'visible' : ''}`} title={!showPixel ? '点击开启真实像素网格' : pixelGridVisible ? `真实像素网格正在显示 · 每格对应 1 个源像素 · 当前 ${sourcePixelScreenMinimum.toFixed(1)}px/像素` : pixelGridRevealScale ? `真实像素网格已启用 · 放大到约 ${Math.ceil(pixelGridRevealScale * 100)}% 后显示` : '真实像素网格已启用 · 图像尺寸就绪后显示'}><input type="checkbox" aria-label="显示真实像素网格" checked={showPixel} onChange={(event) => setShowPixel(event.target.checked)} /><span className="statusbar-grid-check" aria-hidden="true" /><span>{pixelGridVisible ? '真实网格已显示' : '真实网格待显示'}</span></label><button type="button" className={`statusbar-autosave ${annotationAutoSave ? 'active' : ''} ${annotationDirty ? 'dirty' : ''} ${annotationPersistence.phase === 'error' ? 'error' : ''}`} role="switch" aria-label="全局自动保存" aria-describedby="global-annotation-save-status" aria-checked={annotationAutoSave} disabled={annotationSaving} title={saveModeTitle} onClick={() => changeAnnotationAutoSave(!annotationAutoSave)}><span>全局自动保存</span><b id="global-annotation-save-status" aria-live="polite">{saveModeLabel}</b><i aria-hidden="true"><span /></i></button></div></footer>
         </section>
 
         <aside className={`sidebar right-sidebar ${rightTab}-tab`}>
@@ -5429,7 +5576,7 @@ export default function Home() {
 
           {rightTab === 'pipeline' && <section className="pipeline-panel">
             <div className="panel-intro pipeline-intro"><div><span className="eyebrow">处理数据流</span><h2>{pipelineEnabled ? '流程已开启' : '流程已关闭'}</h2><p>每个节点严格遵循 Image → Image，并声明标注变换。</p></div><label className="switch"><input type="checkbox" checked={pipelineEnabled} onChange={(event) => changePipelineEnabled(event.target.checked)} /><span /></label></div>
-            <div className="pipeline-background-toggle"><div><strong>后台预计算全部图像</strong><small>关闭时仍实时处理当前图</small></div><label className="switch" title="当前图始终实时处理；此开关只控制是否在后台预计算全库"><input type="checkbox" aria-label="后台预计算全部图像" checked={pipelineScope === 'all'} onChange={(event) => changePipelineScope(event.target.checked ? 'all' : 'current')} /><span /></label></div>
+            <div className="pipeline-background-toggle"><div><strong>后台预计算全部图像</strong><small>只写应用缓存，不修改原图或标注 JSON；关闭时仍实时处理当前图</small></div><label className="switch" title="当前图始终实时处理；此开关只控制是否在后台预计算全库"><input type="checkbox" aria-label="后台预计算全部图像" checked={pipelineScope === 'all'} onChange={(event) => changePipelineScope(event.target.checked ? 'all' : 'current')} /><span /></label></div>
             {pipelineFailureDetail && <div className="pipeline-editor-failure" role="alert"><span aria-hidden="true">!</span><div><strong>处理流程失败</strong><p>{pipelineFailureDetail}</p></div>{pipelineFailureNeedsModel && pipelineFeatureNode && <button type="button" onClick={() => openInferenceFeatureConfiguration(pipelineFeatureNode)}>前往推理加载模型</button>}</div>}
             <div className="flow-canvas" onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); addNode(event.dataTransfer.getData('text/plain'), pipelineGaps.at(-1)); }}>
               <div className="flow-sequence">{pipelineLinearNodes.map((node, sequenceIndex) => {
@@ -5469,9 +5616,10 @@ export default function Home() {
           {rightTab === 'inference' && <section className="inference-panel">
             <div className="panel-intro model-intro"><div><span className="eyebrow">模型推理</span><h2>模型</h2><p>{backend.mode === 'online' ? `${displayedModelCatalog.length} 个可选模型 · ${backend.health.data?.model_registry.adapters ?? 0} 个可预测适配器` : '本地服务离线，模型目录暂不可用'}</p></div></div>
             <section className={`inference-model-browser compact ${modelActionKind}`} aria-labelledby="inference-model-browser-title"><div className="inference-model-current"><button ref={modelPickerTriggerRef} type="button" className="inference-model-trigger" aria-haspopup="dialog" aria-expanded={modelPickerOpen} onClick={toggleModelPicker}><span>{selectedModel.badge.slice(0, 2)}</span><div><strong id="inference-model-browser-title">{selectedModel.name}</strong><small>{selectedModel.task} · {modelStatusRefreshing ? '刷新状态…' : modelIsLoaded ? '已加载' : selectedModel.availability === 'missing_weights' ? '缺少权重' : modelLoadError ? '加载失败' : selectedModel.availability === 'available' ? '已下载 · 选择后自动加载' : '不可用'}</small></div><svg className="model-picker-chevron" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.75 6 7.5l3-2.75" /></svg></button>{modelActionKind === 'download' || modelActionKind === 'retry' ? <button type="button" className={`model-action-button ${selectedModelDownloadActive ? `downloading ${selectedModelDownloadProgress === null ? 'indeterminate' : 'determinate'}` : ''}`} style={selectedModelDownloadActive && selectedModelDownloadProgress !== null ? ({ '--model-download-progress': `${selectedModelDownloadProgress}%` } as React.CSSProperties) : undefined} disabled={backend.mode !== 'online' || !selectedModel.id || backend.runtime.phase === 'loading' || modelDownloadActionPending || selectedModelDownloadActive} onClick={() => modelActionKind === 'download' ? void downloadSelectedModel() : void loadSelectedModel()}>{modelActionLabel}</button> : <span className={`model-state-pill ${modelIsLoaded ? 'loaded' : backend.runtime.phase === 'loading' ? 'loading' : 'idle'}`}>{backend.runtime.phase === 'loading' ? '加载中…' : modelIsLoaded ? '已加载' : '未加载'}</span>}</div></section>
+            {selectedModel.licenseName && <p className="model-license-notice"><strong>{selectedModel.licenseName}</strong><span>{selectedModel.usageNotice ?? '使用前请查看模型许可证。'}{selectedModel.availabilityReason && <em>运行时：{selectedModel.availabilityReason}</em>}</span>{selectedModel.licenseUrl && <a href={selectedModel.licenseUrl} target="_blank" rel="noreferrer">许可证</a>}{selectedModel.sourceUrl && <a href={selectedModel.sourceUrl} target="_blank" rel="noreferrer">官方源码</a>}</p>}
             {modelPickerOpen && <ModelPickerDialog models={displayedModelCatalog} tasks={modelTasks} selectedTask={modelTask} selectedModelId={selectedModel.id} refreshing={modelStatusRefreshing} downloadPending={modelDownloadActionPending} downloadActive={selectedModelDownloadActive} downloadProgress={selectedModelDownloadActive ? selectedModelDownloadProgress : null} onTaskChange={chooseModelTask} onSelect={(modelId) => chooseModel(modelId)} onDownload={() => void downloadSelectedModel()} onClose={closeModelPicker} />}
-            {isSamModel && <section className={`sam-prompt-panel ${samPromptMode ? 'active' : ''}`}><header><div><span className="eyebrow">SAM Prompts</span><strong>当前图交互提示</strong></div><b>{samPromptCount} 个</b></header><div className="sam-prompt-tools"><button className={samPromptMode && samPromptTool === 'positive' ? 'active positive' : 'positive'} onClick={() => { drawRef.current = null; setDrawPreview(null); setSamPromptMode(true); setSamPromptTool('positive'); }}>＋ 正点</button><button className={samPromptMode && samPromptTool === 'negative' ? 'active negative' : 'negative'} onClick={() => { drawRef.current = null; setDrawPreview(null); setSamPromptMode(true); setSamPromptTool('negative'); }}>− 负点</button><button className={samPromptMode && samPromptTool === 'box' ? 'active box' : 'box'} onClick={() => { drawRef.current = null; setDrawPreview(null); setSamPromptMode(true); setSamPromptTool('box'); }}>▭ 框选</button><button disabled={samPromptCount === 0} onClick={() => { samBoxDragRef.current = null; setSamPoints([]); setSamBoxes([]); setSamBoxPreview(null); }}>清空</button></div><div className="sam-prompt-counts"><span>正点 {samPoints.filter((point) => point.label === 1).length}</span><span>负点 {samPoints.filter((point) => point.label === 0).length}</span><span>框 {samBoxes.length}</span></div>{samPromptMode ? <button className="sam-exit" onClick={() => { samBoxDragRef.current = null; setSamBoxPreview(null); setSamPromptMode(false); }}>退出提示模式 · 恢复普通标注工具</button> : <p>选择提示类型后在当前图点击或拖框。提示仅作为推理参数，不会写入原标注。</p>}</section>}
-            <section className="side-section compact inference-parameter-card"><div className="section-title"><div><h2>推理参数</h2><small>{Object.keys(selectedModel.parametersSchema).length ? `${Object.keys(selectedModel.parametersSchema).length} 个模型参数 · 修改后自动刷新当前图` : '该模型未声明额外推理参数'}</small></div><button disabled={!Object.keys(selectedModel.parametersSchema).length} onClick={resetInferenceParameters}>恢复默认</button></div>{Object.keys(selectedModel.parametersSchema).length ? <div className="model-parameter-list">{Object.entries(selectedModel.parametersSchema).map(([name, schema]) => <PipelineParameterControl key={name} name={name} label={schema.title ?? name} schema={schema} value={inferenceParameters[name]} onChange={updateInferenceParameter} />)}</div> : <div className="model-parameter-empty">使用模型适配器的固定默认配置。</div>}<label className="parameter-row runtime-provider"><span>运行设备</span><CustomSelect ariaLabel="运行设备" value={inferenceProvider} options={[{ value: 'CPUExecutionProvider', label: 'CPU · ONNX Runtime' }]} onChange={setInferenceProvider} /></label><small className="provider-note">选择或调整模型参数后，会自动对当前图片执行单图推理；批量任务仍需明确创建。</small></section>
+            {isSamModel && <section className={`sam-prompt-panel ${samPromptMode ? 'active' : ''}`}><header><div><span className="eyebrow">SAM Prompts</span><strong>当前图交互式 Mask 标注</strong></div><b>{samPromptCount} 个</b></header><div className="sam-prompt-tools"><button className={samPromptMode && samPromptTool === 'positive' ? 'active positive' : 'positive'} disabled={!modelIsLoaded || showingPipelineImage} title={!modelIsLoaded ? '请先加载 SAM 模型' : showingPipelineImage ? '请先切回原图' : undefined} onClick={() => { drawRef.current = null; setDrawPreview(null); setSamPromptMode(true); setSamPromptTool('positive'); }}>＋ 正点</button><button className={samPromptMode && samPromptTool === 'negative' ? 'active negative' : 'negative'} disabled={!modelIsLoaded || showingPipelineImage} title={!modelIsLoaded ? '请先加载 SAM 模型' : showingPipelineImage ? '请先切回原图' : undefined} onClick={() => { drawRef.current = null; setDrawPreview(null); setSamPromptMode(true); setSamPromptTool('negative'); }}>− 负点</button><button className={samPromptMode && samPromptTool === 'box' ? 'active box' : 'box'} disabled={!modelIsLoaded || showingPipelineImage} title={!modelIsLoaded ? '请先加载 SAM 模型' : showingPipelineImage ? '请先切回原图' : undefined} onClick={() => { drawRef.current = null; setDrawPreview(null); setSamPromptMode(true); setSamPromptTool('box'); }}>▭ 框选</button><button disabled={samPromptCount === 0} onClick={() => { samBoxDragRef.current = null; setSamPoints([]); setSamBoxes([]); setSamBoxPreview(null); }}>清空</button></div><div className="sam-prompt-counts"><span>正点 {samPoints.filter((point) => point.label === 1).length}</span><span>负点 {samPoints.filter((point) => point.label === 0).length}</span><span>框 {samBoxes.length}</span></div>{!modelIsLoaded ? <p className="blocked">模型加载成功后可在原图上添加正点、负点或拖拽框。</p> : showingPipelineImage ? <p className="blocked">SAM 提示使用原图像素坐标；请先切回原图再标注。</p> : samPromptMode ? <button className="sam-exit" onClick={() => { samBoxDragRef.current = null; setSamBoxPreview(null); setSamPromptMode(false); }}>退出提示模式 · 恢复普通标注工具</button> : <p>选择提示类型后在原图点击或拖框；每次更改都会自动刷新 Mask。</p>}{modelIsLoaded && currentSegmentationContours.length > 0 && <button type="button" className="sam-accept" disabled={!annotationDraft || showingPipelineImage || adoptableSamContourCount === 0} onClick={adoptCurrentSamMask}>{adoptableSamContourCount === 0 ? '✓ 当前 Mask 已采用' : '✓ 采用当前 Mask 为人工标注'}</button>}</section>}
+            <section className="side-section compact inference-parameter-card"><div className="section-title"><div><h2>推理参数</h2><small>{Object.keys(selectedModel.parametersSchema).length ? `${Object.keys(selectedModel.parametersSchema).length} 个模型参数 · 修改后自动刷新当前图` : '该模型未声明额外推理参数'}</small></div><button disabled={!Object.keys(selectedModel.parametersSchema).length} onClick={resetInferenceParameters}>恢复默认</button></div>{Object.keys(selectedModel.parametersSchema).length ? <div className="model-parameter-list">{Object.entries(selectedModel.parametersSchema).map(([name, schema]) => <PipelineParameterControl key={name} name={name} label={schema.title ?? name} schema={schema} value={inferenceParameters[name]} onChange={updateInferenceParameter} />)}</div> : <div className="model-parameter-empty">使用模型适配器的固定默认配置。</div>}{selectedModel.adapter === 'hypir_sd2_pytorch' ? <div className="parameter-row runtime-provider"><span>运行设备</span><strong>CUDA · 独立 HYPIR 环境</strong></div> : <label className="parameter-row runtime-provider"><span>运行设备</span><CustomSelect ariaLabel="运行设备" value={inferenceProvider} options={[{ value: 'CPUExecutionProvider', label: 'CPU · ONNX Runtime' }]} onChange={setInferenceProvider} /></label>}<small className="provider-note">选择或调整模型参数后，会自动对当前图片执行单图推理；批量任务仍需明确创建。</small></section>
             <section ref={inferenceFeatureCardRef} className="feature-capture-card" tabIndex={-1}>
               <header><div><span className="eyebrow">Layer Visualization</span><strong>中间层可视化</strong><small>{!selectedModel.capture ? '当前适配器不开放内部张量' : !modelIsLoaded ? '加载权重后解析真实 ONNX 图' : selectedLayer ? `已启用 · ${selectedLayer.name}` : `${availableLayers.length} 个可捕获层 · 选择后自动启用`}</small></div></header>
               <div className="feature-layer-select"><span>选择层</span><CustomSelect disabled={!modelIsLoaded || availableLayers.length === 0} ariaLabel="选择可视化层" value={selectedLayer?.id ?? ''} options={availableLayers.map((layer) => ({ value: layer.id, label: `${layer.group} / ${layer.name}` }))} placeholder={!modelIsLoaded ? '请先加载模型' : availableLayers.length ? '选择一个真实层' : '没有可捕获层'} onChange={setSelectedLayerId} /></div>
@@ -5491,18 +5639,23 @@ export default function Home() {
                     </>}</>}
               {backend.runtime.data?.capture_warning && availableLayers.length > 0 && <p className="feature-capture-warning">{backend.runtime.data.capture_warning}</p>}
             </section>
-            {(currentSegmentationContours.length > 0 || currentRasters.length > 0 || currentClassifications.length > 0) && <section className="inference-display-controls" aria-label="当前图推理结果显示">
-              {(currentSegmentationContours.length > 0 || currentRasters.length > 0) && <div className={`prediction-display-control ${showMasks && !pixelResultDisplayBlockedReason ? 'active' : ''}`}><div><span className="eyebrow">Segmentation / Pixel</span><strong>分割 / 像素结果</strong><small>{pixelResultSummary}</small></div><button role="switch" aria-label="显示分割和像素结果" aria-checked={showMasks && !pixelResultDisplayBlockedReason} disabled={Boolean(pixelResultDisplayBlockedReason)} title={pixelResultDisplayBlockedReason ?? undefined} onClick={() => setShowMasks((visible) => !visible)}>{pixelResultDisplayBlockedReason ? '不可叠加' : showMasks ? '显示中' : '已隐藏'}</button></div>}
+            {(currentSegmentationContours.length > 0 || sourceCompatibleRasters.length > 0 || currentClassifications.length > 0) && <section className="inference-display-controls" aria-label="当前图推理结果显示">
+              {(currentSegmentationContours.length > 0 || sourceCompatibleRasters.length > 0) && <div className={`prediction-display-control ${showMasks && !pixelResultDisplayBlockedReason ? 'active' : ''}`}><div><span className="eyebrow">Segmentation / Pixel</span><strong>分割 / 像素结果</strong><small>{pixelResultSummary}</small></div><button role="switch" aria-label="显示分割和像素结果" aria-checked={showMasks && !pixelResultDisplayBlockedReason} disabled={Boolean(pixelResultDisplayBlockedReason)} title={pixelResultDisplayBlockedReason ?? undefined} onClick={() => setShowMasks((visible) => !visible)}>{pixelResultDisplayBlockedReason ? '不可叠加' : showMasks ? '显示中' : '已隐藏'}</button></div>}
               {currentClassifications.length > 0 && <div className={`prediction-display-control ${showClassifications ? 'active' : ''}`}><div><span className="eyebrow">Classification</span><strong>分类浮层</strong><small>Top-{Math.min(5, currentClassifications.length)} · {currentClassifications[0].label}</small></div><button role="switch" aria-label="显示分类 Top-K" aria-checked={showClassifications} onClick={() => setShowClassifications((visible) => !visible)}>{showClassifications ? '显示中' : '已隐藏'}</button></div>}
             </section>}
             {showInferenceResult && <div className="inference-results-region">
               <div className="inference-result-strip" role="status" aria-label="当前图推理摘要"><span><b>{Math.round(currentInferenceResult?.timings_ms.total ?? 0)} ms</b>耗时</span>{currentAnnotationsAreSegmentation && <span><b>{currentPredictions.length}</b>轮廓</span>}<span><b>{currentClassifications.length}</b>分类</span><span><b>{currentArtifacts.length}</b>特征</span>{currentRasters.length > 0 && <span><b>{currentRasters.length}</b>Raster</span>}</div>
-              {backend.mode === 'online' && currentRasters.length > 0 && <section className="inference-rasters"><header><div><span className="eyebrow">Pixel Outputs</span><strong>当前图像素 / Mask 结果</strong></div><b>{currentRasters.length}</b></header><div>{currentRasters.map((raster) => {
+              {backend.mode === 'online' && currentRasters.length > 0 && <section className="inference-rasters"><header><div><span className="eyebrow">Image / Pixel Outputs</span><strong>当前图图像 / Mask 结果</strong></div><b>{currentRasters.length}</b></header><div>{currentRasters.map((raster) => {
                 const contentUrl = backend.artifactContentUrl(raster.id);
-                const compatible = !showingPipelineImage && inferenceRasterMatchesSource(raster, currentFile?.width, currentFile?.height);
-                const active = raster.id === activeRaster?.id;
-                const mismatchReason = showingPipelineImage ? '处理流底图开启时不可叠加' : `尺寸 ${raster.width} × ${raster.height} 与源图 ${currentFile?.width ?? '?'} × ${currentFile?.height ?? '?'} 不一致`;
-                return <button key={raster.id} className={active ? 'active' : ''} aria-pressed={active} disabled={!compatible} title={compatible ? `在画布显示 ${raster.role}` : mismatchReason} onClick={() => { setSelectedRasterId(raster.id); setShowMasks(true); }}>{contentUrl && <span className="raster-preview" aria-hidden="true" style={{ backgroundImage: `url(${contentUrl})` }} />}<span className="raster-copy"><strong>{raster.role}</strong><small>{raster.width} × {raster.height} · {formatArtifactBytes(raster.size_bytes)} · {raster.media_type}</small><em>{compatible ? summarizeRasterMetadata(raster.metadata) : mismatchReason}</em></span><b>{compatible ? active ? '画布显示中' : '显示' : '不可叠加'}</b></button>;
+                const displayMode = inferenceRasterDisplayMode(raster, currentFile?.width, currentFile?.height);
+                const overlayCompatible = displayMode === 'overlay' && !showingPipelineImage;
+                const standalone = displayMode === 'standalone';
+                const active = standalone ? raster.id === activeStandaloneRaster?.id : raster.id === activeRaster?.id;
+                const mismatchReason = displayMode === 'unsupported'
+                  ? `尺寸 ${raster.width} × ${raster.height} 与源图 ${currentFile?.width ?? '?'} × ${currentFile?.height ?? '?'} 不兼容`
+                  : '处理流或独立图像底图开启时不可叠加';
+                const title = standalone ? active ? '返回原图' : `在画布查看 ${raster.role}` : overlayCompatible ? `在画布叠加 ${raster.role}` : mismatchReason;
+                return <button key={raster.id} className={active ? 'active' : ''} aria-pressed={active} disabled={!standalone && !overlayCompatible} title={title} onClick={() => { if (standalone) { setSelectedStandaloneRasterId(active ? null : raster.id); setVisualizationDisplayMode('source'); setSinglePipelineSource('source'); setShowMasks(false); } else { setSelectedStandaloneRasterId(null); setSelectedRasterId(raster.id); setShowMasks(true); } }}>{contentUrl && <span className="raster-preview" aria-hidden="true" style={{ backgroundImage: `url(${contentUrl})` }} />}<span className="raster-copy"><strong>{raster.role}</strong><small>{raster.width} × {raster.height} · {formatArtifactBytes(raster.size_bytes)} · {raster.media_type}</small><em>{standalone ? `独立图像 · ${summarizeRasterMetadata(raster.metadata)}` : overlayCompatible ? summarizeRasterMetadata(raster.metadata) : mismatchReason}</em></span><b>{standalone ? active ? '返回原图' : '画布查看' : overlayCompatible ? active ? '画布显示中' : '叠加' : '不可叠加'}</b></button>;
               })}</div></section>}
               {backend.mode === 'online' && currentClassifications.length > 0 && <section className="classification-results"><header><span className="eyebrow">Classification</span><strong>当前图 Top-K</strong></header>{currentClassifications.map((item) => <div key={`${item.rank}:${item.label}`}><b>#{item.rank}</b><span>{item.label}</span><strong>{(item.score * 100).toFixed(2)}%</strong></div>)}</section>}
               {backend.mode === 'online' && currentArtifacts.length > 0 && <section className="feature-result-compact" aria-label="当前图中间层结果">{currentArtifacts.map((artifact) => <details key={artifact.id}><summary><span><strong>{artifact.layer_id}</strong><small>{artifact.dtype} · {formatArtifactBytes(artifact.size_bytes)}</small></span><code>{formatTensorShape(artifact.source_shape)} → {formatTensorShape(artifact.shape)}</code><b>详情</b></summary><div className="feature-result-details"><dl>{Object.entries(artifact.statistics).map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{formatArtifactNumber(value)}</dd></div>)}</dl><code>{artifact.id}</code><p>{summarizeFeatureTransform(artifact.transform)}</p></div></details>)}</section>}
@@ -5574,6 +5727,8 @@ export default function Home() {
         onOpenSettings={openGlobalSettings}
         onRetryService={() => void backend.refreshHealth()}
       />}
+
+      {unavailableProjectRemoval && <div className="recovery-overlay"><section className="unavailable-project-dialog" role="dialog" aria-modal="true" aria-labelledby="unavailable-project-title"><header><div><span className="eyebrow">Missing Project Source</span><h2 id="unavailable-project-title">移除此项目记录？</h2><p>源目录已删除、移动或暂时不可访问，LabelOne 无法打开这个项目。</p></div></header><div className="unavailable-project-target"><strong>{unavailableProjectRemoval.name}</strong><code title={unavailableProjectRemoval.root_dir}>{unavailableProjectRemoval.root_dir}</code></div><p className="unavailable-project-copy">确认后会先取消与此项目关联的未完成后台任务，再移除 LabelOne 保存的本地索引和最近项目记录；不会删除或修改磁盘中的任何图片、标注或目录。</p>{unavailableProjectRemovalError && <p className="unavailable-project-error" role="alert">{unavailableProjectRemovalError}</p>}<footer><button className="ghost-button" disabled={unavailableProjectRemovalPending} onClick={() => { setUnavailableProjectRemoval(null); setUnavailableProjectRemovalError(''); }}>取消 · 保留记录</button><button className="danger-button" disabled={unavailableProjectRemovalPending} onClick={() => void removeUnavailableProjectRecord()}>{unavailableProjectRemovalPending ? '正在取消任务并移除…' : '取消任务并移除记录'}</button></footer></section></div>}
 
       {datasetOpen && <div className="recovery-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) setDatasetOpen(false); }}>
         <section className="dataset-open-dialog" role="dialog" aria-modal="true" aria-label="打开数据集">

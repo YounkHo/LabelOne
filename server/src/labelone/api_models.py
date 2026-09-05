@@ -53,6 +53,11 @@ class ModelDownloadSourceOption(BaseModel):
     label: str = Field(min_length=1, max_length=100)
 
 
+class ModelWeightDownloadRequest(BaseModel):
+    url_indices: list[int] = Field(min_length=1, max_length=64)
+    expected_sha256: dict[int, str] = Field(default_factory=dict)
+
+
 class NetworkProxySettings(BaseModel):
     mode: Literal["system", "direct", "manual"] = "system"
     url: str = Field(default="", max_length=2048)

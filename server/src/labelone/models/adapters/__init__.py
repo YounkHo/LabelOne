@@ -1,5 +1,6 @@
 from .detr import DetrDetectionOnnxAdapter
 from .depth import DepthAnythingOnnxAdapter
+from .hypir import HypirSd2SubprocessAdapter
 from .onnx import OnnxRuntimeAdapter, YoloDetectionOnnxAdapter
 from .ppocr import PpOcrOnnxAdapter
 from .rmbg import RmbgMattingOnnxAdapter
@@ -16,6 +17,7 @@ __all__ = [
     "PpOcrOnnxAdapter",
     "DetrDetectionOnnxAdapter",
     "DepthAnythingOnnxAdapter",
+    "HypirSd2SubprocessAdapter",
     "RmbgMattingOnnxAdapter",
     "RamTaggingOnnxAdapter",
     "SegmentAnythingOnnxAdapter",

@@ -134,6 +134,10 @@ export type ModelCatalogItem = {
   task: string;
   family: string;
   adapter: string;
+  source_url?: string | null;
+  license_name?: string | null;
+  license_url?: string | null;
+  usage_notice?: string | null;
   runtime: string[];
   config_path: string;
   weight_locations: string[];
@@ -347,6 +351,8 @@ export type RegisteredDataset = {
   created_at: string;
   updated_at: string;
   index_revision: number;
+  source_available: boolean;
+  source_error: 'root_missing' | 'image_root_missing' | null;
 };
 
 export type DatasetListResponse = { datasets: RegisteredDataset[] };

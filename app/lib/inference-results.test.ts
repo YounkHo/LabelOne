@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import type { JobRecord } from './contracts.ts';
-import { groupInferencePredictionsByCategory, inferenceAnnotationsAreSegmentation, inferencePredictionKey, inferenceRasterMatchesSource, inferenceResultFromJobItem, latestInferenceJobForModel } from './inference-results.ts';
+import { groupInferencePredictionsByCategory, inferenceAnnotationsAreSegmentation, inferencePredictionKey, inferenceRasterCanvasScale, inferenceRasterDisplayMode, inferenceRasterMatchesSource, inferenceResultFromJobItem, latestInferenceJobForModel } from './inference-results.ts';
 
 const result = {
   model_id: 'detector',
@@ -46,6 +46,16 @@ test('raster overlay requires exact source dimensions', () => {
   assert.equal(inferenceRasterMatchesSource({ width: 640, height: 480 }, 640, 480), true);
   assert.equal(inferenceRasterMatchesSource({ width: 320, height: 240 }, 640, 480), false);
   assert.equal(inferenceRasterMatchesSource({ width: 640, height: 480 }, undefined, 480), false);
+});
+
+test('uniformly scaled super-resolution rasters use a standalone canvas source', () => {
+  const restored = { role: 'super-resolution', width: 2560, height: 1920, metadata: { kind: 'super_resolution' } };
+  assert.equal(inferenceRasterDisplayMode(restored, 640, 480), 'standalone');
+  assert.equal(inferenceRasterCanvasScale(restored, 640, 480), 4);
+  assert.equal(inferenceRasterDisplayMode({ ...restored, width: 640, height: 480 }, 640, 480), 'standalone');
+  assert.equal(inferenceRasterDisplayMode({ ...restored, width: 1280, height: 1000 }, 640, 480), 'unsupported');
+  assert.equal(inferenceRasterDisplayMode({ role: 'depth-map', width: 1280, height: 960, metadata: {} }, 640, 480), 'unsupported');
+  assert.equal(inferenceRasterDisplayMode({ role: 'mask', width: 640, height: 480, metadata: {} }, 640, 480), 'overlay');
 });
 
 test('segmentation annotation models are distinct from detection and OCR models', () => {

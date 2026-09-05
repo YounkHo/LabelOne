@@ -11,6 +11,7 @@ from .adapters import (
     OnnxRuntimeAdapter,
     DetrDetectionOnnxAdapter,
     DepthAnythingOnnxAdapter,
+    HypirSd2SubprocessAdapter,
     RmbgMattingOnnxAdapter,
     RamTaggingOnnxAdapter,
     PpOcrOnnxAdapter,
@@ -174,6 +175,7 @@ class ModelManager:
             "onnx_raw": OnnxRuntimeAdapter,
             "detr_detection_onnx": DetrDetectionOnnxAdapter,
             "depth_anything_onnx": DepthAnythingOnnxAdapter,
+            "hypir_sd2_pytorch": HypirSd2SubprocessAdapter,
             "rmbg_matting_onnx": RmbgMattingOnnxAdapter,
             "ram_tagging_onnx": RamTaggingOnnxAdapter,
             "ppocr_onnx": PpOcrOnnxAdapter,
@@ -199,7 +201,8 @@ class ModelManager:
                 self._states[model_id] = ModelRuntimeState(model_id=model_id, state="loading")
             try:
                 if self.isolate_processes:
-                    state = ModelRuntimeState.model_validate(self._supervisor(model_id).load(providers))
+                    timeout = self._configured_request_timeout(model_id, "load_timeout")
+                    state = ModelRuntimeState.model_validate(self._supervisor(model_id).load(providers, timeout=timeout))
                 else:
                     with self._lock:
                         adapter = self._adapters.get(model_id) or self._create_adapter(model_id)
@@ -254,14 +257,28 @@ class ModelManager:
             if self.isolate_processes:
                 if self.state(model_id).state != "loaded":
                     raise ModelRuntimeError("Model is not loaded", details={"model_id": model_id})
+                timeout = self._configured_request_timeout(model_id, "inference_timeout")
                 return InferenceResult.model_validate(
-                    self._supervisor(model_id).predict(image_path, capture_layers, parameters)
+                    self._supervisor(model_id).predict(image_path, capture_layers, parameters, timeout=timeout)
                 )
             with self._lock:
                 adapter = self._adapters.get(model_id)
             if not adapter or not adapter.loaded:
                 raise ModelRuntimeError("Model is not loaded", details={"model_id": model_id})
             return adapter.predict(image_path, capture_layers, parameters)
+
+    def _configured_request_timeout(self, model_id: str, key: str) -> float | None:
+        record = self.catalog.get(model_id)
+        if record.descriptor.adapter != "hypir_sd2_pytorch":
+            return None
+        raw = record.config.get(key, 600)
+        try:
+            value = float(raw)
+        except (TypeError, ValueError) as exc:
+            raise ModelRuntimeError(f"HYPIR {key} must be numeric") from exc
+        if not 1 <= value <= 3600:
+            raise ModelRuntimeError(f"HYPIR {key} is outside the supported range")
+        return value
 
     def close_all(self) -> None:
         with self._lock:

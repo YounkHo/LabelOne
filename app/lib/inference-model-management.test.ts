@@ -72,10 +72,15 @@ test('the selected model exposes real layer visualization directly below it', ()
 test('the download action resolves all declared missing weights through persistent jobs', () => {
   assert.match(page, /const downloadSelectedModel = async/);
   assert.match(page, /const missing = weights\?\.filter\(\(weight\) => !weight\.downloaded\)/);
-  assert.match(page, /backend\.downloadModelWeight\(selectedModel\.id, weight\.url_index\)/);
-  assert.match(page, /backend\.watchJobEvents\(first\.job_id\)/);
-  assert.match(backend, /const downloadModelWeight = useCallback/);
+  assert.match(page, /backend\.downloadModelWeights\(selectedModel\.id, missing\.map\(\(weight\) => weight\.url_index\)\)/);
+  assert.match(page, /backend\.watchJobEvents\(job\.job_id\)/);
+  assert.match(page, /已创建 1 个权重下载任务 · \$\{missing\.length\} 个文件/);
+  assert.match(page, /modelDownloadActionPendingRef\.current/);
+  assert.match(backend, /const downloadModelWeights = useCallback/);
+  assert.match(backend, /body: JSON\.stringify\(\{ url_indices: urlIndices \}\)/);
+  assert.doesNotMatch(page, /for \(const weight of missing\)/);
   assert.match(page, /selectedModelDownloadProgressItems\.every/);
+  assert.match(page, /selectedModelDownloadFileCount/);
   assert.match(page, /'--model-download-progress': `\$\{selectedModelDownloadProgress\}%`/);
   assert.match(page, /selectedModelDownloadProgress === null \? '下载中…' : `\$\{selectedModelDownloadProgress\}%`/);
   assert.match(css, /\.model-action-button\.downloading::after\{[^}]*width:var\(--model-download-progress\);height:3px/);

@@ -204,15 +204,15 @@ def test_model_catalog_prioritizes_loaded_runtime_then_global_usage(tmp_path: Pa
         runtime_ranked = client.get("/api/v1/models")
 
     assert imported.status_code == 200
-    assert [model["id"] for model in usage_ranked.json()["models"]] == ["frequent", "loaded"]
+    assert [model["id"] for model in usage_ranked.json()["models"]] == ["frequent", "loaded", "hypir-sd2"]
     assert usage_ranked.json()["status_by_model"]["frequent"]["usage_count"] == 3
     assert loaded.status_code == 200
-    assert [model["id"] for model in runtime_ranked.json()["models"]] == ["loaded", "frequent"]
+    assert [model["id"] for model in runtime_ranked.json()["models"]] == ["loaded", "frequent", "hypir-sd2"]
     assert runtime_ranked.json()["status_by_model"]["loaded"]["runtime_state"] == "loaded"
 
     restarted = create_app(Settings(data_dir=data_dir))
     with TestClient(restarted) as client:
         persisted = client.get("/api/v1/models")
-    assert [model["id"] for model in persisted.json()["models"]] == ["frequent", "loaded"]
+    assert [model["id"] for model in persisted.json()["models"]] == ["frequent", "loaded", "hypir-sd2"]
     assert persisted.json()["status_by_model"]["frequent"]["usage_count"] == 3
     assert persisted.json()["status_by_model"]["loaded"]["runtime_state"] == "unloaded"

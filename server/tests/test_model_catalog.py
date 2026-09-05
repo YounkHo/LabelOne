@@ -79,6 +79,37 @@ def test_bad_yaml_does_not_block_remaining_catalog(tmp_path: Path) -> None:
     assert any(warning.code == "invalid_yaml" for warning in response.warnings)
 
 
+def test_builtin_hypir_catalog_declares_noncommercial_super_resolution_contract(monkeypatch) -> None:
+    for name in (
+        "LABELONE_HYPIR_PYTHON",
+        "LABELONE_HYPIR_ROOT",
+        "LABELONE_HYPIR_SD21_BASE",
+        "LABELONE_HYPIR_SD2_WEIGHT",
+    ):
+        monkeypatch.delenv(name, raising=False)
+    root = Path(__file__).parents[1] / "src" / "labelone" / "model_library"
+    catalog = ModelCatalog()
+
+    response = catalog.import_x_anylabeling(root)
+    descriptor = catalog.get("hypir-sd2").descriptor
+
+    assert [model.id for model in response.models] == ["hypir-sd2"]
+    assert descriptor.task == "super_resolution"
+    assert descriptor.adapter == "hypir_sd2_pytorch"
+    assert descriptor.runtime == ["HYPIR PyTorch / CUDA"]
+    assert descriptor.capabilities.predict is True
+    assert descriptor.capabilities.result_kinds == ["rasters"]
+    assert descriptor.capabilities.feature_capture.mode is FeatureCaptureMode.NONE
+    assert descriptor.availability.state is AvailabilityState.UNSUPPORTED
+    assert "LABELONE_HYPIR_PYTHON" in (descriptor.availability.reason or "")
+    assert descriptor.license_name == "HYPIR Non-Commercial License"
+    assert descriptor.source_url == "https://github.com/XPixelGroup/HYPIR"
+    properties = descriptor.capabilities.parameters_schema["properties"]
+    assert set(properties) == {"prompt", "upscale", "patch_size", "stride", "seed", "output_format"}
+    assert properties["upscale"]["minimum"] == 1
+    assert properties["upscale"]["maximum"] == 8
+
+
 def test_common_yolo_onnx_families_select_runnable_adapters(tmp_path: Path) -> None:
     config_root = tmp_path / "anylabeling" / "configs"
     auto = config_root / "auto_labeling"

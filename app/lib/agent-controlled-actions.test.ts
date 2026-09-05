@@ -18,7 +18,8 @@ test('pipeline drafts only load registered transform nodes into editor state', (
   assert.match(page, /\['source', 'output', 'visualize'\]\.includes\(kind\)/);
   assert.match(page, /pipelineContracts\.find\(\(candidate\) => candidate\.kind === kind\)/);
   assert.match(page, /setNodes\(nextNodes\)/);
-  assert.match(page, /normalizeVisualizationTaps\(nextNodes, old\)/);
+  assert.match(page, /const nextVisualizations = normalizeVisualizationTaps\(nextNodes, visualizations\)/);
+  assert.match(page, /setSinglePipelineSource\(finalPipelineVisualizationId\(nextNodes, nextVisualizations\)\)/);
   assert.match(page, /setRightTab\('pipeline'\)/);
 });
 

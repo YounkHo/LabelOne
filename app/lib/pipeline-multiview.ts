@@ -215,6 +215,26 @@ export function pipelineCoordinateMappingFromTransform(
   };
 }
 
+export function canvasCoordinateTransformFromPipelineMapping(
+  mapping: PipelineCoordinateMappingLike | null | undefined,
+): CanvasCoordinateTransform | null {
+  if (!mapping || mapping.kind === 'unavailable' || !mapping.source_to_output) return null;
+  const [a, b, c, d, e, f] = mapping.source_to_output;
+  if (![a, b, c, d, e, f, mapping.output_width, mapping.output_height].every(Number.isFinite)) return null;
+  if (mapping.output_width <= 0 || mapping.output_height <= 0 || Math.abs(a * d - b * c) <= Number.EPSILON) return null;
+  return {
+    a,
+    b,
+    c,
+    d,
+    e,
+    f,
+    width: mapping.output_width,
+    height: mapping.output_height,
+    topologySafe: mapping.topology_safe,
+  };
+}
+
 export function createPipelineSharedCursor(
   activeVisualizationId: string,
   label: string,

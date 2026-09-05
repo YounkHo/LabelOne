@@ -33,6 +33,27 @@ test('recent projects restore their saved asset and fall back to the first valid
   assert.doesNotMatch(page, /datasetRestoreAttempted|preferredDatasetIdRef|preferredAssetIdRef/);
 });
 
+test('recent projects expose missing source directories before opening stale indexes', () => {
+  assert.match(contracts, /source_available: boolean/);
+  assert.match(contracts, /source_error: 'root_missing' \| 'image_root_missing' \| null/);
+  assert.match(welcome, /project\.source_available === false/);
+  assert.match(welcome, /className=\{unavailable \? 'unavailable' : undefined\}/);
+  assert.match(welcome, /源目录已移动或删除/);
+  assert.match(welcome, /unavailable \? '无法打开'/);
+  assert.match(css, /\.recent-project-list>button\.unavailable\{/);
+  assert.match(page, /if \(registered\.source_available === false\) \{[\s\S]*?setUnavailableProjectRemoval\(registered\)/);
+  assert.match(page, /className="unavailable-project-dialog" role="dialog" aria-modal="true"/);
+  assert.match(page, /移除此项目记录？/);
+  assert.match(page, /会先取消与此项目关联的未完成后台任务，再移除 LabelOne 保存的本地索引和最近项目记录/);
+  assert.match(page, /取消 · 保留记录/);
+  assert.match(page, /取消任务并移除记录/);
+  assert.match(page, /await backend\.removeRegisteredDataset\(project\.dataset_id\)/);
+  assert.match(backend, /const removeRegisteredDataset = useCallback/);
+  assert.match(backend, /method: 'DELETE'/);
+  assert.match(backend, /\?cancel_active_jobs=true/);
+  assert.match(css, /\.unavailable-project-dialog\{/);
+});
+
 test('startup has no built-in datasets, fake annotations, predictions, inference or agent replies', () => {
   const sources = `${page}\n${backend}\n${contracts}`;
   assert.doesNotMatch(sources, /晶圆缺陷集|航拍建筑集|细胞分割集|wafer_zone_|demoAnnotationShapes|demoPredictionShape|modelCatalog|layerProfiles/);

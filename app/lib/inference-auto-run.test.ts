@@ -10,7 +10,7 @@ test('the inference card renders the selected model schema instead of fixed conf
   assert.match(page, /Object\.entries\(selectedModel\.parametersSchema\)\.map\(\(\[name, schema\]\) => <PipelineParameterControl/);
   assert.match(page, /setInferenceParameters\(inferenceParameterDefaults\(model\.parametersSchema\)\)/);
   assert.match(page, /parameters: singleInferenceParameters/);
-  assert.match(page, /parameters: \{ \.\.\.inferenceParameters, \.\.\.\(isSamModel \? samPromptParameters : \{\}\) \}/);
+  assert.match(page, /\.\.\.\(isSamModel \? samPromptParameters : \{\}\),/);
   assert.doesNotMatch(page, /confidenceThreshold|setConfidenceThreshold|iou_threshold: 0\.45|切片推理/);
 });
 
@@ -37,4 +37,15 @@ test('SAM prompts are cleared across every model change and gate automatic infer
   assert.match(chooseModel, /setSamPoints\(\[\]\)/);
   assert.match(chooseModel, /setSamBoxes\(\[\]\)/);
   assert.match(page, /if \(isSamModel && samPromptCount === 0\) return/);
+});
+
+test('loaded SAM models expose safe point and box prompts whose masks can become annotations', () => {
+  assert.match(page, /disabled=\{!modelIsLoaded \|\| showingPipelineImage\}/);
+  assert.match(page, /SAM 提示使用原图像素坐标/);
+  assert.match(page, /const adoptCurrentSamMask = \(\) => \{/);
+  assert.match(page, /currentSegmentationContours\.flatMap/);
+  assert.match(page, /prompt_type: 'sam'/);
+  assert.match(page, /commitAnnotationDocument\(\{[\s\S]*?\.\.\.promoted/);
+  assert.match(page, /采用当前 Mask 为人工标注/);
+  assert.match(page, /isSamModel && !showingPipelineImage && samPoints\.map/);
 });

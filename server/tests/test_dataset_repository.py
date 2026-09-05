@@ -5,9 +5,11 @@ from pathlib import Path
 import sqlite3
 
 from PIL import Image
+import pytest
 
 from labelone.datasets import DatasetScanRequest, scan_dataset
 from labelone.datasets.repository import DatasetRepository
+from labelone.errors import InvalidPathError
 
 
 def _dataset(root: Path) -> None:
@@ -39,6 +41,25 @@ def test_register_persist_list_and_page_assets(tmp_path: Path) -> None:
     assert reopened.get_dataset("stable").summary.valid == 3
     assert reopened.list_assets("stable", offset=2, limit=2).next_offset is None
     reopened.close()
+
+
+def test_missing_dataset_root_is_reported_before_stale_assets_are_returned(tmp_path: Path) -> None:
+    root = tmp_path / "dataset"
+    _dataset(root)
+    repository = DatasetRepository(tmp_path / "missing-root.sqlite3")
+    repository.register(scan_dataset(DatasetScanRequest(root_dir=root, layout="same_directory", dataset_id="missing-root")))
+
+    root.rename(tmp_path / "dataset-moved")
+
+    listed = repository.list_datasets().datasets[0]
+    assert listed.source_available is False
+    assert listed.source_error == "root_missing"
+    with pytest.raises(InvalidPathError, match="数据集源目录不存在或不可访问") as error:
+        repository.list_assets_cursor("missing-root")
+    assert error.value.details["reason"] == "root_missing"
+    with pytest.raises(InvalidPathError):
+        repository.search_assets("missing-root", query="", mode="smart")
+    repository.close()
 
 
 def test_json_file_filter_distinguishes_empty_json_from_missing_json(tmp_path: Path) -> None:

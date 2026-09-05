@@ -7,7 +7,7 @@ const css = readFileSync(new URL('../globals.css', import.meta.url), 'utf8');
 
 test('canvas display modes keep the original compact horizontal control', () => {
   const start = page.indexOf('{showPipelineViewControls && <div className="pipeline-view-controls"');
-  const switcher = page.slice(start, page.indexOf('\n            {pipelinePreviewDirty', start));
+  const switcher = page.slice(start, page.indexOf('\n            {pipelineFailureDetail', start));
   assert.doesNotMatch(page, /function PipelineViewIcon|pipeline-view-segments|pipeline-view-source/);
   assert.match(switcher, /<div role="radiogroup" aria-label="处理流显示布局"><div className=\{`pipeline-single-choice/);
   assert.match(switcher, /role="radio" aria-checked=\{effectiveVisualizationDisplayMode === 'source'\}/);

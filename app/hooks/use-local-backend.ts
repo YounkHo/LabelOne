@@ -172,12 +172,13 @@ export function useLocalBackend() {
     return localRequest<ModelWeightItem[]>(base, `/models/${encodeURIComponent(modelId)}/weights`, {}, 15000);
   }, []);
 
-  const downloadModelWeight = useCallback(async (modelId: string, urlIndex: number) => {
+  const downloadModelWeights = useCallback(async (modelId: string, urlIndices: number[]) => {
     const base = baseRef.current;
     if (!base) throw new LocalApiError({ code: 'local_service_unavailable', message: 'Model weight download requires the local service' });
-    const response = await localRequest<JobRecord>(base, `/models/${encodeURIComponent(modelId)}/weights/${urlIndex}/download`, {
+    const response = await localRequest<JobRecord>(base, `/models/${encodeURIComponent(modelId)}/weights/download`, {
       method: 'POST',
       headers: { 'Idempotency-Key': crypto.randomUUID() },
+      body: JSON.stringify({ url_indices: urlIndices }),
     }, 15000);
     setJobs((old) => ({ phase: 'ready', data: { jobs: [response, ...old.data.jobs.filter((job) => job.job_id !== response.job_id)] } }));
     return response;
@@ -358,6 +359,16 @@ export function useLocalBackend() {
     const base = baseRef.current;
     if (!base) throw new LocalApiError({ code: 'local_service_unavailable', message: 'Dataset loading requires the local service' });
     return localRequest<AssetCursorPage>(base, `/datasets/${encodeURIComponent(datasetId)}/assets-cursor?limit=100`, {}, 15000);
+  }, []);
+
+  const removeRegisteredDataset = useCallback(async (datasetId: string) => {
+    const base = baseRef.current;
+    if (!base) throw new LocalApiError({ code: 'local_service_unavailable', message: 'Dataset removal requires the local service' });
+    await localRequest<null>(base, `/datasets/${encodeURIComponent(datasetId)}?cancel_active_jobs=true`, { method: 'DELETE' }, 15000);
+    setDatasets((old) => ({
+      ...old,
+      data: { datasets: old.data.datasets.filter((dataset) => dataset.dataset_id !== datasetId) },
+    }));
   }, []);
 
   const getDatasetSettings = useCallback(async (datasetId: string) => {
@@ -542,7 +553,7 @@ export function useLocalBackend() {
     setPipeline((old) => old.phase === 'loading' ? { ...old, phase: 'idle', stale: Boolean(old.data) } : old);
   }, []);
 
-  const previewPipeline = useCallback(async (input: { dataset_id: string; asset_id: string; priority?: 'interactive' | 'background'; nodes: Array<{ id: string; kind: string; enabled: boolean; parameters: Record<string, unknown> }> }) => {
+  const previewPipeline = useCallback(async (input: { dataset_id: string; asset_id: string; priority?: 'interactive' | 'background'; output_format?: 'webp' | 'png' | 'jpeg'; nodes: Array<{ id: string; kind: string; enabled: boolean; parameters: Record<string, unknown> }> }) => {
     const base = baseRef.current;
     if (!base) throw new LocalApiError({ code: 'local_service_unavailable', message: 'Pipeline preview requires the local service' });
     pipelineController.current?.abort();
@@ -602,7 +613,7 @@ export function useLocalBackend() {
     setPipelineValidation({ phase: 'idle', data: null });
   }, []);
 
-  const prefetchPipelinePreview = useCallback(async (input: { dataset_id: string; asset_id: string; priority?: 'interactive' | 'background'; nodes: Array<{ id: string; kind: string; enabled: boolean; parameters: Record<string, unknown> }> }) => {
+  const prefetchPipelinePreview = useCallback(async (input: { dataset_id: string; asset_id: string; priority?: 'interactive' | 'background'; output_format?: 'webp' | 'png' | 'jpeg'; nodes: Array<{ id: string; kind: string; enabled: boolean; parameters: Record<string, unknown> }> }) => {
     const base = baseRef.current;
     if (!base) throw new LocalApiError({ code: 'local_service_unavailable', message: 'Pipeline prefetch requires the local service' });
     pipelinePrefetchController.current?.abort();
@@ -1104,7 +1115,7 @@ export function useLocalBackend() {
     updateApplicationSettings,
     refreshModels,
     listModelWeights,
-    downloadModelWeight,
+    downloadModelWeights,
     refreshDatasets,
     startScan,
     pickDirectory,
@@ -1112,6 +1123,7 @@ export function useLocalBackend() {
     resumeScan,
     registerScan,
     openRegisteredDataset,
+    removeRegisteredDataset,
     getDatasetSettings,
     saveDatasetSettings,
     getDatasetAsset,

@@ -7,8 +7,8 @@ const css = readFileSync(new URL('../globals.css', import.meta.url), 'utf8');
 const backend = readFileSync(new URL('../hooks/use-local-backend.ts', import.meta.url), 'utf8');
 
 test('two to four pipeline displays fill the canvas and share normalized view without transforming the grid', () => {
-  assert.match(page, /showingMultiplePipelineViews = showPipelineViewControls && effectiveVisualizationDisplayMode !== 'source'/);
-  assert.match(page, /className={`pipeline-preview-surface mode-\$\{showingSinglePipelineView \? 'single' : effectiveVisualizationDisplayMode\} count-\$\{pipelineCanvasItems\.length\}`}/);
+  assert.match(page, /showingMultiplePipelineViews = showPipelineViewControls && pipelineHasDisplayablePane && effectiveVisualizationDisplayMode !== 'source'/);
+  assert.match(page, /className={`pipeline-preview-surface mode-\$\{effectiveVisualizationDisplayMode\} count-\$\{pipelineCanvasItems\.length\}`}/);
   assert.doesNotMatch(page, /className={`pipeline-preview-surface[^\n]*style=\{\{ transform:/);
   assert.match(page, /className="pipeline-preview-pane-content" style=\{\{ transform: pipelineSharedPaneTransform \}\}/);
   assert.match(css, /\.pipeline-preview-surface\{position:absolute;z-index:1;inset:0;width:100%;height:100%;margin:0;overflow:hidden;border:0;border-radius:0/);
@@ -74,15 +74,19 @@ test('parameter changes keep the last successful panes while the next preview is
 });
 
 test('single-source, split, and overlay modes preserve stable slots while switching assets', () => {
-  assert.match(page, /useState<PipelineDisplayMode>\('split'\)/);
-  assert.match(page, /useState\('source'\)/);
+  assert.match(page, /useState<PipelineDisplayMode>\('source'\)/);
+  assert.match(page, /useState\(\(\) => finalPipelineVisualizationId\(initialNodes, initialVisualizations\)\)/);
+  assert.match(page, /if \(enabled\) \{\s+setSinglePipelineSource\(finalPipelineSource\);\s+setVisualizationDisplayMode\('source'\)/);
+  assert.match(page, /setSinglePipelineSource\(finalPipelineSource\)/);
   assert.match(page, /className="pipeline-single-source-select" ariaLabel="单画面来源"/);
   assert.match(page, /\{ value: 'source', label: '原图' \}/);
   assert.match(page, /value: item\.visualization_id, label: `D\$\{index \+ 1\}/);
   assert.match(page, /aria-pressed=\{effectiveVisualizationDisplayMode === 'split'\}/);
   assert.match(page, /aria-pressed=\{effectiveVisualizationDisplayMode === 'overlay'\}/);
   assert.match(page, /setSinglePipelineSource\(value\); setVisualizationDisplayMode\('source'\)/);
-  assert.match(page, /pipelineImageUrl: visualizationDisplayMode === 'source' \? null : effectivePipelineImageUrl/);
+  assert.match(page, /const canvasPipelineItem = effectiveVisualizationDisplayMode === 'source'[\s\S]*?\? selectedSinglePipelineItem[\s\S]*?: pipelineDisplayItems\[0\]/);
+  assert.match(page, /pipelineImageUrl: activeStandaloneRasterUrl \?\? effectivePipelineImageUrl/);
+  assert.match(page, /const showingPipelinePaneViews = showingMultiplePipelineViews/);
   assert.match(page, /singlePipelineSource === 'source' \? '单画面 · 原图'/);
   assert.match(page, /stablePipelineDisplaySlots\(visualizations, pipelinePreviewItems, MAX_PIPELINE_VISUALIZATIONS\)/);
   assert.match(page, /const pipelinePreviewItems = useMemo\(\(\) => pipelineBelongsToCurrentAsset/);

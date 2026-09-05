@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 
 from labelone import __version__
-from labelone.api_models import ApplicationSettingsResponse, ApplicationSettingsUpdate, DirectoryPickerRequest, DirectoryPickerResponse, ErrorResponse, HealthResponse
+from labelone.api_models import ApplicationSettingsResponse, ApplicationSettingsUpdate, DirectoryPickerRequest, DirectoryPickerResponse, ErrorResponse, HealthResponse, ModelWeightDownloadRequest
 from labelone.application_settings import MODEL_DOWNLOAD_SOURCES, ApplicationSettingsStore, apply_network_proxy_environment
 from labelone.workspace_settings import DatasetWorkspaceSettings, DatasetWorkspaceSettingsResponse, DatasetWorkspaceSettingsUpdate, ModelUsageRecord, WorkspacePipelineSettings
 from labelone.agent import AgentAuditRecord, AgentRepository, AgentRun, AgentRunRequest, AgentService, AgentStatus
@@ -84,6 +84,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         else (active_settings.data_dir.expanduser().resolve() / "model-weights")
     )
     catalog = ModelCatalog()
+    builtin_model_root = Path(__file__).resolve().parent / "model_library"
+    catalog.import_x_anylabeling(builtin_model_root)
     artifact_store = ArtifactStore(active_settings.data_dir / "artifacts")
     weight_store = ModelWeightStore(active_settings.data_dir, root_dir=configured_model_weights_dir)
     manager = ModelManager(
@@ -177,7 +179,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         x_anylabeling_root = model_sources.x_anylabeling_root() or active_settings.x_anylabeling_root
         if x_anylabeling_root:
             try:
-                await asyncio.to_thread(catalog.import_x_anylabeling, x_anylabeling_root)
+                await asyncio.to_thread(catalog.merge_x_anylabeling, x_anylabeling_root)
             except LabelOneError:
                 pass
         # Recovered model-download jobs resolve their catalog entry as soon as
@@ -423,13 +425,23 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return dataset_repository.list_datasets()
 
     @app.delete("/api/v1/datasets/{dataset_id}", status_code=204)
-    async def unregister_dataset(dataset_id: str) -> Response:
-        if await asyncio.to_thread(job_repository.has_active_dataset_jobs, dataset_id):
+    async def unregister_dataset(dataset_id: str, cancel_active_jobs: bool = False) -> Response:
+        active_job_ids = await asyncio.to_thread(job_repository.active_dataset_job_ids, dataset_id)
+        if active_job_ids and cancel_active_jobs:
+            for job_id in active_job_ids:
+                await asyncio.to_thread(job_service.cancel, job_id)
+            for _ in range(50):
+                active_job_ids = await asyncio.to_thread(job_repository.active_dataset_job_ids, dataset_id)
+                if not active_job_ids:
+                    break
+                await asyncio.sleep(0.1)
+        if active_job_ids:
             raise HTTPException(
                 status_code=409,
                 detail={
                     "code": "dataset_has_active_jobs",
-                    "message": "Dataset cannot be unregistered while jobs are active",
+                    "message": "项目仍有关联的未完成后台任务，请先取消任务后再移除",
+                    "details": {"dataset_id": dataset_id, "job_ids": active_job_ids},
                 },
             )
         await asyncio.to_thread(dataset_repository.delete_dataset, dataset_id)
@@ -979,7 +991,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         # previous source tree; unloading also releases model memory/processes.
         for descriptor in catalog.list().models:
             await asyncio.to_thread(manager.unload, descriptor.id)
-        await asyncio.to_thread(catalog.import_x_anylabeling, request.root_dir)
+        await asyncio.to_thread(catalog.import_x_anylabeling, builtin_model_root)
+        await asyncio.to_thread(catalog.merge_x_anylabeling, request.root_dir)
         await asyncio.to_thread(model_sources.set_x_anylabeling_root, request.root_dir)
         return effective_catalog_response()
 
@@ -1043,6 +1056,32 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             }
             for item in weights
         ]
+
+    @app.post(
+        "/api/v1/models/{model_id}/weights/download",
+        response_model=JobRecord,
+        status_code=202,
+    )
+    async def download_model_weights(
+        model_id: str,
+        request: ModelWeightDownloadRequest,
+        response: Response,
+        idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+    ) -> JobRecord:
+        if not idempotency_key:
+            raise HTTPException(
+                status_code=428,
+                detail={"code": "idempotency_key_required", "message": "Model weight download requires Idempotency-Key"},
+            )
+        job = await asyncio.to_thread(
+            job_service.create_model_download,
+            model_id,
+            request.url_indices,
+            expected_sha256=request.expected_sha256,
+            idempotency_key=idempotency_key,
+        )
+        response.headers["Location"] = f"/api/v1/jobs/{job.job_id}"
+        return job
 
     @app.post(
         "/api/v1/models/{model_id}/weights/{url_index}/download",

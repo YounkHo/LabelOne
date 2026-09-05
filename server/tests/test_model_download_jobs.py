@@ -216,6 +216,28 @@ def test_multiple_weight_files_download_concurrently(tmp_path: Path) -> None:
     datasets.close()
 
 
+def test_equivalent_active_downloads_reuse_one_job_across_different_idempotency_keys(tmp_path: Path) -> None:
+    url = "https://github.com/org/model.onnx"
+    started = Event()
+    release = Event()
+    response = _Response(url, b"payload", started=started, release=release)
+    store = ModelWeightStore(tmp_path, opener=_Opener(url, [response]), max_bytes=1024)
+    datasets, jobs, service = _runtime(tmp_path, store, _record(tmp_path, url))
+
+    first = service.create_model_download("fixture", [0], idempotency_key="first-click")
+    assert started.wait(5)
+    duplicate = service.create_model_download("fixture", [0], idempotency_key="second-click")
+    release.set()
+    finished = _wait(jobs, first.job_id, {"succeeded"})
+
+    assert duplicate.job_id == first.job_id
+    assert finished.total == 1
+    assert len(jobs.list().jobs) == 1
+    service.close()
+    jobs.close()
+    datasets.close()
+
+
 def test_failed_download_preserves_partial_and_manual_resume_reuses_it(tmp_path: Path) -> None:
     url = "https://github.com/org/model.onnx"
     failed_response = _Response(url, b"partial", fail_after_reads=1)

@@ -4,6 +4,7 @@ export const PIPELINE_PREVIEW_CACHE_LIMIT = 32;
 export const PIPELINE_IMAGE_RETRY_LIMIT = 2;
 
 export function pipelineArtifactDisplayUrl(url: string, epoch: number, attempt: number): string {
+  if (attempt <= 0) return url;
   const separator = url.includes('?') ? '&' : '?';
   return `${url}${separator}display=${Math.max(0, Math.trunc(epoch))}-${Math.max(0, Math.trunc(attempt))}`;
 }
@@ -64,6 +65,24 @@ export function pipelinePrecomputeKey(datasetId: string, signature: string): str
 
 export function pipelineRequestNodesEqual(left: unknown, right: unknown): boolean {
   return JSON.stringify(canonical(left)) === JSON.stringify(canonical(right));
+}
+
+export function pipelineModelFeatureRuntimeKey(
+  nodes: Array<{ kind: string; enabled?: boolean; parameters?: Record<string, unknown> }>,
+  runtime: { model_id?: string; state?: string } | null | undefined,
+  statusByModel: Record<string, { runtime_state?: string }> | null | undefined,
+): string {
+  const feature = nodes.find((node) => node.kind === 'model_feature' && node.enabled !== false);
+  const modelId = typeof feature?.parameters?.model_id === 'string' ? feature.parameters.model_id.trim() : '';
+  if (!feature || !modelId) return 'none';
+  const state = runtime?.model_id === modelId
+    ? runtime.state
+    : statusByModel?.[modelId]?.runtime_state;
+  return `${modelId}:${state || 'unloaded'}`;
+}
+
+export function hasDisplayablePipelinePane(items: Array<{ displayUrl?: string | null }>): boolean {
+  return items.some((item) => Boolean(item.displayUrl));
 }
 
 export function pipelinePreviewResultFromJobItem(result: Record<string, unknown> | undefined): PipelinePreviewResult | null {

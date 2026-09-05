@@ -1,0 +1,26 @@
+type: hypir_sd2
+name: hypir-sd2
+display_name: HYPIR-SD2
+provider: XPixel Group / SupPixel
+source_url: https://github.com/XPixelGroup/HYPIR
+license_name: HYPIR Non-Commercial License
+license_url: https://github.com/XPixelGroup/HYPIR/blob/main/LICENSE
+usage_notice: 仅限非商业用途；商业使用需取得 SupPixel 书面授权。
+runtime_python_env: LABELONE_HYPIR_PYTHON
+repository_root_env: LABELONE_HYPIR_ROOT
+base_model_root_env: LABELONE_HYPIR_SD21_BASE
+weight_path_env: LABELONE_HYPIR_SD2_WEIGHT
+allow_external_code: true
+lora_rank: 256
+lora_modules: [to_k, to_q, to_v, to_out.0, conv, conv1, conv2, conv_shortcut, conv_out, proj_in, proj_out, ff.net.2, ff.net.0.proj]
+model_t: 200
+coeff_t: 200
+prompt: ""
+upscale: 4
+patch_size: 512
+stride: 256
+seed: 231
+output_format: png
+max_output_pixels: 64000000
+load_timeout: 600
+inference_timeout: 600

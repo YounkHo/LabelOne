@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  finalPipelineVisualizationId,
   insertPipelineNode,
   insertPipelineNodeAtGap,
   normalizeVisualizationTaps,
@@ -49,6 +50,18 @@ test('linear flow fixes source at the top and a visualization at the bottom', ()
   assert.equal(items[0].kind, 'source');
   assert.equal(items.at(-1)?.kind, 'visualize');
   assert.equal(items.some((item, index) => item.kind === 'visualize' && items[index + 1]?.kind === 'visualize'), false);
+  assert.equal(finalPipelineVisualizationId(
+    [source, resize],
+    [visualization('display-final', 'resize-1'), visualization('display-source', 'source')],
+  ), 'display-final');
+});
+
+test('final display selection follows normalized topology and falls back to source only without a display', () => {
+  assert.equal(finalPipelineVisualizationId(
+    [source, resize],
+    [visualization('orphaned-display', 'missing'), visualization('source-display', 'source')],
+  ), 'orphaned-display');
+  assert.equal(finalPipelineVisualizationId([source], []), 'source');
 });
 
 test('every adjacent pair owns one gap and only main-to-main gaps may insert a visualization', () => {

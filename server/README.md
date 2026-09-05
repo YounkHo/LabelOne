@@ -138,6 +138,18 @@ To force a model-weight download directory (overriding the persisted UI setting)
 LABELONE_MODEL_WEIGHTS_DIR=/path/to/model-weights uv run labelone-server
 ```
 
+The built-in HYPIR-SD2 entry uses a separate, explicitly configured CUDA runtime so its pinned Python 3.10 / Torch 2.6 dependencies do not alter the LabelOne server environment:
+
+```bash
+LABELONE_HYPIR_PYTHON=/path/to/hypir-env/bin/python \
+LABELONE_HYPIR_ROOT=/path/to/HYPIR \
+LABELONE_HYPIR_SD21_BASE=/path/to/stable-diffusion-2-1-base \
+LABELONE_HYPIR_SD2_WEIGHT=/path/to/HYPIR_sd2.pth \
+uv run labelone-server
+```
+
+HYPIR is non-commercial-only without separate permission from SupPixel. LabelOne does not bundle its source, SD2.1 base model, or weights, and does not download them implicitly.
+
 Cloud Agent planning is configured through the local Web settings page. The
 persisted settings contain only the HTTPS endpoint, model id, limits, and an
 environment-variable name. The credential itself must be provided through that
